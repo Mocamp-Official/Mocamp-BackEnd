@@ -30,13 +30,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     /**
      * 로그인 시, DB에 있는 사용자 정보와 일치하는지 확인하고 Security가 이해할 수 있는 UserDetails로 반환해주는 메서드
      * UserDetailsService는 자동으로 작동하되, 이를 Override하여 해당 메서드로 작동하게 구성
-     * @param username
+     * @param email
      * @return UserDetails 객체 반환
      * @throws UsernameNotFoundException -> DB에 해당 사용자 없으면 예외 처리
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findUserByEmail(username)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        UserEntity user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_EXCEPTION));
         return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), getAuthorities(user));
     }
