@@ -1,6 +1,7 @@
 package com.mocamp.mocamp_backend.authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mocamp.mocamp_backend.dto.CommonResponse.ErrorResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -45,12 +46,6 @@ public class AuthExceptionHandlerFilter extends OncePerRequestFilter {
             // 유효하지 않은 토큰
             setErrorResponse(response, ErrorCode.INVALID_TOKEN);
         }
-    }
-
-    @Data
-    public static class ErrorResponse{
-        private final Integer code;
-        private final String message;
     }
 
     @Getter
