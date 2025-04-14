@@ -59,20 +59,15 @@ public class JwtProvider {
      * @return 생성된 JWT 토큰
      */
     public String generateToken(Authentication authentication, long expireMills){
-        String authorities = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
-
         long now = (new Date()).getTime();
-
         Date accessTokenExpire = new Date(now + expireMills);
-        String token = Jwts.builder()
+
+        return Jwts.builder()
                 .setSubject(authentication.getName())
-                .claim("auth", authorities)
+                .claim("auth", "ROLE_USER") // 고정된 권한
                 .setExpiration(accessTokenExpire)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
-        return token;
     }
 
     /**
