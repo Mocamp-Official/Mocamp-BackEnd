@@ -1,16 +1,15 @@
 package com.mocamp.mocamp_backend.authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mocamp.mocamp_backend.dto.CommonResponse.ErrorResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
+import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

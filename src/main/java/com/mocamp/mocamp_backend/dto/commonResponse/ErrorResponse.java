@@ -1,8 +1,9 @@
-package com.mocamp.mocamp_backend.dto.CommonResponse;
+package com.mocamp.mocamp_backend.dto.commonResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Builder
 @Getter

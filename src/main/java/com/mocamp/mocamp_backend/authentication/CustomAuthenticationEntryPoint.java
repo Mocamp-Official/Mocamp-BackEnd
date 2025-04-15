@@ -1,6 +1,7 @@
 package com.mocamp.mocamp_backend.authentication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -19,6 +20,6 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("utf-8");
         response.getWriter().write(objectMapper.writeValueAsString(
-                new AuthExceptionHandlerFilter.ErrorResponse(HttpStatus.UNAUTHORIZED.value(), "다시 로그인 해주세요")));
+                new ErrorResponse(HttpStatus.UNAUTHORIZED.value(), "다시 로그인 해주세요")));
     }
 }
