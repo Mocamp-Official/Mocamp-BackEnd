@@ -22,12 +22,12 @@ public class JoinedRoomEntity {
     private Boolean isAdmin = false;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean participating = false;
+    @Column(name = "is_participating", nullable = false)
+    private Boolean isParticipating = false;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean deleted = false;
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)

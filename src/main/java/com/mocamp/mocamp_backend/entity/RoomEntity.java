@@ -27,18 +27,18 @@ public class RoomEntity {
     @Column(nullable = false)
     private String status;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDateTime startDate;
+    @Column(name = "started_at", nullable = false)
+    private LocalDateTime startedAt;
 
-    @Column(name = "end_date", nullable = false)
-    private LocalDateTime endDate;
+    @Column(name = "ended_at", nullable = false)
+    private LocalDateTime endedAt;
 
     @Column(nullable = false)
     private String notice;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean deleted = false;
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)

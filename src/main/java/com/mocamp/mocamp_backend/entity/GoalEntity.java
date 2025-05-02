@@ -19,12 +19,12 @@ public class GoalEntity {
     private String content;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean completed = false;
+    @Column(name = "is_completed", nullable = false)
+    private Boolean isCompleted = false;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean deleted = false;
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
     @ManyToOne
     @JoinColumn(name = "joined_room_id", nullable = false)

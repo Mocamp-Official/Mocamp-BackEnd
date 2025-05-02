@@ -24,7 +24,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false)
@@ -33,11 +33,11 @@ public class UserEntity {
     @Column(name = "email_verified_yn", nullable = false)
     private String emailVerifiedYN;
 
-    @Column(name = "created_time", nullable = false)
-    private LocalDateTime createdTime;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    @Column(name = "modified_time", nullable = false)
-    private LocalDateTime modifiedTime;
+    @Column(name = "modified_at", nullable = false)
+    private LocalDateTime modifiedAt;
 
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
