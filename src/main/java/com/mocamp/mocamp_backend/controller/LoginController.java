@@ -4,11 +4,15 @@ import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
 import com.mocamp.mocamp_backend.service.login.GoogleLoginService;
 import com.mocamp.mocamp_backend.service.login.KakaoLoginService;
-import lombok.Getter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Login Controller", description = "구글/카카오/네이버 소셜 로그인 엔드포인트")
 @RestController
 @RequestMapping("/api/login")
 @RequiredArgsConstructor
@@ -16,21 +20,31 @@ public class LoginController {
     private final GoogleLoginService googleLoginService;
     private final KakaoLoginService kakaoLoginService;
 
-    // 구글 로그인 페이지 로딩
+    @Operation(
+            summary = "구글 로그인 페이지 로딩",
+            responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
+    )
     @GetMapping("/google/page")
     public ResponseEntity<CommonResponse> loadGoogleLoginPage() {
         return googleLoginService.loadGoogleLoginPage();
     }
 
-    // 구글 로그인 진행 (리다이렉션 URI)
+    @Operation(
+            summary = "구글 로그인 리다이렉션 URI",
+            parameters = { @Parameter(name = "code", description = "로그인 후 구글 서버에서 반환하는 코드") },
+            responses = { @ApiResponse(responseCode = "200", description = "로그인 성공") }
+    )
     @GetMapping("/google/process")
     public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code) {
         return googleLoginService.logInViaGoogle(code);
     }
 
-    // 카카오 로그인 진행(리다이렉션 URI)
+    @Operation(
+            summary = "카카오 로그인 리다이렉션 URI",
+            parameters = { @Parameter(name = "code", description = "로그인 후 카카오 서버에서 반환하는 코드") }
+    )
     @GetMapping("/kakao/process")
-    public ResponseEntity<KakaoLoginResponse> kakaoLogin(@RequestParam("code") String code) {
+    public ResponseEntity<KakaoLoginResponse> kakaoLogin(@RequestParam(name = "code") String code) {
         KakaoLoginResponse kakaoLoginResponse = kakaoLoginService.kakaoLogin(code);
         return ResponseEntity.ok(kakaoLoginResponse);
     }
