@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
+import com.mocamp.mocamp_backend.dto.naver.NaverLoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,26 +29,28 @@ import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
-public class KakaoLoginService {
+public class NaverLoginService {
 
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
-    @Value("${kakao.key.client-id}")
+    @Value("${naver.client.id}")
     private String clientId;
-    @Value("${kakao.redirect-uri}")
+    @Value("${naver.client.secret}")
+    private String clientSecret;
+    @Value("${naver.redirect.uri}")
     private String redirectUri;
-    @Value("${kakao.page.uri}")
-    private String pageUri;
+    private final static String NAVER_AUTH_URI = "https://nid.naver.com";
+    private final static String NAVER_API_URI = "https://openapi.naver.com";
 
     /**
-     * "인가 코드"로 카카오 "액세스 토큰" 요청하는 메서드
+     * "인가 코드"로 네이버 "액세스 토큰" 요청하는 메서드
      * @param code -> 인가 코드
      * @return AccessToken 반환
      */
     private String getAccessToken(String code) {
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+        headers.add("Content-type", "application/x-www-form-urlencoded");
 
         // HTTP Body 생성
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
@@ -56,14 +58,16 @@ public class KakaoLoginService {
         body.add("client_id", clientId);
         body.add("redirect_uri", redirectUri);
         body.add("code", code);
+        body.add("client_secret", clientSecret);
 
         // HTTP 요청 보내기
-        HttpEntity<MultiValueMap<String, String>> kakaoTokenRequest = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, String>> naverTokenRequest = new HttpEntity<>(body, headers);
         RestTemplate rt = new RestTemplate();
+
         ResponseEntity<String> response = rt.exchange(
-                "https://kauth.kakao.com/oauth/token",
+                NAVER_AUTH_URI + "/oauth2.0/token",
                 HttpMethod.POST,
-                kakaoTokenRequest,
+                naverTokenRequest,
                 String.class
         );
 
@@ -80,25 +84,25 @@ public class KakaoLoginService {
     }
 
     /**
-     * 카카오 "액세스 토큰"으로 카카오 API 호출하여 유저 정보 받아오는 메서드
-     * @param kakaoAccessToken 액세스 토큰
+     * 네이버 "액세스 토큰"으로 네이버 API 호출하여 유저 정보 받아오는 메서드
+     * @param naverAccessToken 액세스 토큰
      * @return 유저 정보 HashMap으로 응답
      */
-    private HashMap<String, Object> getKakaoUserInfo(String kakaoAccessToken) {
+    private HashMap<String, Object> getNaverUserInfo(String naverAccessToken) {
         HashMap<String, Object> userInfo= new HashMap<String,Object>();
 
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + kakaoAccessToken);
+        headers.add("Authorization", "Bearer " + naverAccessToken);
         headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
 
         // HTTP 요청 보내기
-        HttpEntity<MultiValueMap<String, String>> kakaoUserInfoRequest = new HttpEntity<>(headers);
+        HttpEntity<MultiValueMap<String, String>> naverUserInfoRequest = new HttpEntity<>(headers);
         RestTemplate rt = new RestTemplate();
         ResponseEntity<String> response = rt.exchange(
-                "https://kapi.kakao.com/v2/user/me",
+                NAVER_API_URI + "/v1/nid/me",
                 HttpMethod.POST,
-                kakaoUserInfoRequest,
+                naverUserInfoRequest,
                 String.class
         );
 
@@ -112,9 +116,9 @@ public class KakaoLoginService {
             e.printStackTrace();
         }
 
-        Long id = jsonNode.get("id").asLong();
-        String email = jsonNode.get("kakao_account").get("email").asText();
-        String nickname = jsonNode.get("properties").get("nickname").asText();
+        String id = jsonNode.get("response").get("id").asText();
+        String email = jsonNode.get("response").get("email").asText();
+        String nickname = jsonNode.get("response").get("name").asText();
 
         userInfo.put("id",id);
         userInfo.put("email",email);
@@ -123,10 +127,46 @@ public class KakaoLoginService {
         return userInfo;
     }
 
-    private UserEntity createUserEntity(String userSeq, String kakaoEmail, String nickname) {
+    /**
+     * 네이버에서 받은 유저 정보를 기반으로 회원가입 or 로그인을 처리하여 jwt 토큰을 반환하는 메서드
+     * @param naverUserInfo 네이버에서 받은 유저 정보(Map)
+     */
+    private NaverLoginResponse naverUserLogin(HashMap<String, Object> naverUserInfo) {
+        String userSeq = naverUserInfo.get("id").toString();
+        String naverEmail = naverUserInfo.get("email").toString();
+        String nickname = naverUserInfo.get("nickname").toString();
+
+        UserEntity optionalUserEntity = userRepository.findUserByUserSeq(naverUserInfo.get("id").toString()).orElse(null);
+
+        if(optionalUserEntity == null) { // 회원가입의 경우
+            UserEntity newUserEntity = createUserEntity(userSeq, naverEmail, nickname);
+            userRepository.save(newUserEntity);
+
+            Authentication authentication = createAuthenticationFromEmail(newUserEntity.getEmail());
+            String accessToken = jwtProvider.generateAccessToken(authentication);
+            String refreshToken = jwtProvider.generateRefreshToken(authentication);
+
+            return createNaverLoginResponse(newUserEntity, accessToken, refreshToken);
+        } else { // 기존 로그인의 경우
+            Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
+            String accessToken = jwtProvider.generateAccessToken(authentication);
+            String refreshToken = jwtProvider.generateRefreshToken(authentication);
+
+            return createNaverLoginResponse(optionalUserEntity, accessToken, refreshToken);
+        }
+    }
+
+    /**
+     * 회원가입의 경우, User Entity를 생성해주는 메서드
+     * @param userSeq 네이버 고유 ID
+     * @param naverEmail 네이버 이메일
+     * @param nickname 네이버 이름
+     * @return UserEntity
+     */
+    private UserEntity createUserEntity(String userSeq, String naverEmail, String nickname) {
         return UserEntity.builder()
                 .userSeq(userSeq)
-                .email(kakaoEmail)
+                .email(naverEmail)
                 .username(nickname)
                 .emailVerifiedYN("N")
                 .createdAt(LocalDateTime.now())
@@ -135,55 +175,8 @@ public class KakaoLoginService {
     }
 
     /**
-     * 카카오에서 받은 유저 정보를 기반으로 회원가입 or 로그인을 처리하여 jwt 토큰을 반환하는 메서드
-     * @param kakaoUserInfo 카카오에서 받은 유저 정보(Map)
-     * @return 카카오 로그인 응답 객체 반환
-     */
-    private KakaoLoginResponse kakaoUserLogin(HashMap<String, Object> kakaoUserInfo) {
-        String userSeq = kakaoUserInfo.get("id").toString();
-        String kakaoEmail = kakaoUserInfo.get("email").toString();
-        String nickname = kakaoUserInfo.get("nickname").toString();
-
-        UserEntity optionalUserEntity = userRepository.findUserByUserSeq(kakaoUserInfo.get("id").toString()).orElse(null);
-
-        if(optionalUserEntity == null) { // 회원가입의 경우
-            UserEntity newUserEntity = createUserEntity(userSeq, kakaoEmail, nickname);
-            userRepository.save(newUserEntity);
-
-            Authentication authentication = createAuthenticationFromEmail(newUserEntity.getEmail());
-            String accessToken = jwtProvider.generateAccessToken(authentication);
-            String refreshToken = jwtProvider.generateRefreshToken(authentication);
-
-            return createKakaoLoginResponse(newUserEntity, accessToken, refreshToken);
-        } else { // 기존 로그인의 경우
-            Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
-            String accessToken = jwtProvider.generateAccessToken(authentication);
-            String refreshToken = jwtProvider.generateRefreshToken(authentication);
-
-            return createKakaoLoginResponse(optionalUserEntity, accessToken, refreshToken);
-        }
-    }
-
-    /**
-     * KakaoLoginResponse 응답 객체를 생성하는 메서드
-     * @param userEntity 회원가입 or 로그인 한 유저 객체
-     * @param accessToken 생성한 액세스 토큰
-     * @param refreshToken 생성한 리프레쉬 토큰
-     * @return 응답 객체 반환
-     */
-    private KakaoLoginResponse createKakaoLoginResponse(UserEntity userEntity, String accessToken, String refreshToken) {
-        return KakaoLoginResponse.builder()
-                .id(userEntity.getUserId())
-                .email(userEntity.getEmail())
-                .username(userEntity.getUsername())
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
-    }
-
-    /**
-     * JwtProvider의 토큰 생성 기능을 그대로 사용하기 위해 Authentication 객체를 만드는 메서드
-     * @param email 사용자의 이메일 입력
+     * JwtProvider 토큰 생성 기능을 사용하기 위해 Authentication 객체를 만드는 메서드
+     * @param email 사용자의 이메일
      * @return 사용자별 설정 권한이 포함된 Authentication 객체
      */
     private Authentication createAuthenticationFromEmail(String email) {
@@ -195,33 +188,51 @@ public class KakaoLoginService {
     }
 
     /**
-     * 카카오 로그인을 처리하는 메서드
-     * @param code 인가 코드
-     * @return 카카오 로그인 완료 응답 메시지 반환
+     * NaverLoginResponse 응답 객체를 생성하는 메서드
+     * @param userEntity 회원가입 or 로그인 한 유저 객체
+     * @param accessToken 생성한 액세스 토큰
+     * @param refreshToken 생성한 리프레쉬 토큰
+     * @return 응답 객체 반환
      */
-    public KakaoLoginResponse kakaoLogin(String code) {
-        // 1. "인가 코드"로 "액세스 토큰" 요청
-        String KakaoAccessToken = getAccessToken(code);
-        System.out.println(KakaoAccessToken);
-
-        // 2. "액세스 토큰"으로 카카오 API 호출 후, 유저 정보 받아오기
-        HashMap<String, Object> kakaoUserInfo = getKakaoUserInfo(KakaoAccessToken);
-        System.out.println(kakaoUserInfo);
-
-        //3. 카카오ID로 회원가입 & 로그인 처리
-        return kakaoUserLogin(kakaoUserInfo);
+    private NaverLoginResponse createNaverLoginResponse(UserEntity userEntity, String accessToken, String refreshToken) {
+        return NaverLoginResponse.builder()
+                .id(userEntity.getUserId())
+                .email(userEntity.getEmail())
+                .username(userEntity.getUsername())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 
     /**
-     * 카카오 로그인 페이지 로드를 위한 uri 제공 메서드
+     * 네이버 로그인 페이지 로드를 위한 uri 제공 메서드
      * @return 로그인 페이지 uri
      */
-    public ResponseEntity<CommonResponse> loadKakaoLoginPage() {
-        String uri = pageUri + "?"
-                + "client_id=" + clientId
+    public ResponseEntity<CommonResponse> loadNaverLoginPage() {
+        String uri = NAVER_AUTH_URI+ "/oauth2.0/authorize"
+                + "?client_id=" + clientId
                 + "&redirect_uri=" + redirectUri
                 + "&response_type=code";
 
         return ResponseEntity.ok(new SuccessResponse(200, uri));
     }
+
+    /**
+     * 네이버 로그인을 처리하는 메서드
+     * @param code 인가 코드
+     * @return 네이버 로그인 응답 메시지 반환
+     */
+    public NaverLoginResponse naverLogin(String code) {
+        // 1. "인가 코드"로 "액세스 토큰" 요청
+        String naverAccessToken = getAccessToken(code);
+        System.out.println(naverAccessToken);
+
+        // 2. "액세스 토큰"으로 네이버 API 호출 후, 유저 정보 받아오기
+        HashMap<String, Object> naverUserInfo = getNaverUserInfo(naverAccessToken);
+        System.out.println(naverUserInfo);
+
+        //3. 네이버 ID로 회원가입 & 로그인 처리
+        return naverUserLogin(naverUserInfo);
+    }
+
 }
