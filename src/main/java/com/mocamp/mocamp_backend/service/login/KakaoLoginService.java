@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
+import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
+import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.UserRepository;
@@ -35,6 +37,8 @@ public class KakaoLoginService {
     private String clientId;
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
+    @Value("${kakao.page.uri}")
+    private String pageUri;
 
     /**
      * "인가 코드"로 카카오 "액세스 토큰" 요청하는 메서드
@@ -206,5 +210,18 @@ public class KakaoLoginService {
 
         //3. 카카오ID로 회원가입 & 로그인 처리
         return kakaoUserLogin(kakaoUserInfo);
+    }
+
+    /**
+     * 카카오 로그인 페이지 로드를 위한 uri 제공 메서드
+     * @return 로그인 페이지 uri
+     */
+    public ResponseEntity<CommonResponse> loadKakaoLoginPage() {
+        String uri = pageUri + "?"
+                + "client_id=" + clientId
+                + "&redirect_uri=" + redirectUri
+                + "&response_type=code";
+
+        return ResponseEntity.ok(new SuccessResponse(200, uri));
     }
 }
