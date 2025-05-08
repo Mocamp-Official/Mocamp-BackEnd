@@ -2,8 +2,10 @@ package com.mocamp.mocamp_backend.controller;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
+import com.mocamp.mocamp_backend.dto.naver.NaverLoginResponse;
 import com.mocamp.mocamp_backend.service.login.GoogleLoginService;
 import com.mocamp.mocamp_backend.service.login.KakaoLoginService;
+import com.mocamp.mocamp_backend.service.login.NaverLoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class LoginController {
     private final GoogleLoginService googleLoginService;
     private final KakaoLoginService kakaoLoginService;
+    private final NaverLoginService naverLoginService;
 
     @Operation(
             summary = "구글 로그인 페이지 로딩",
@@ -56,5 +59,24 @@ public class LoginController {
     public ResponseEntity<KakaoLoginResponse> kakaoLogin(@RequestParam(name = "code") String code) {
         KakaoLoginResponse kakaoLoginResponse = kakaoLoginService.kakaoLogin(code);
         return ResponseEntity.ok(kakaoLoginResponse);
+    }
+
+    @Operation(
+            summary = "네이버 로그인 페이지 로딩",
+            responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
+    )
+    @GetMapping("/naver/page")
+    public ResponseEntity<CommonResponse> loadNaverLoginPage() {
+        return naverLoginService.loadNaverLoginPage();
+    }
+
+    @Operation(
+            summary = "네이버 로그인 리다이렉션 URI",
+            parameters = { @Parameter(name = "code", description = "로그인 후 네이버 서버에서 반환하는 코드") }
+    )
+    @GetMapping("/naver/process")
+    public ResponseEntity<NaverLoginResponse> naverLogin(@RequestParam(name = "code") String code) {
+        NaverLoginResponse naverLoginResponse = naverLoginService.naverLogin(code);
+        return ResponseEntity.ok(naverLoginResponse);
     }
 }
