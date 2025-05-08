@@ -40,6 +40,15 @@ public class LoginController {
     }
 
     @Operation(
+            summary = "카카오 로그인 페이지 로딩",
+            responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
+    )
+    @GetMapping("/kakao/page")
+    public ResponseEntity<CommonResponse> loadKakaoLoginPage() {
+        return kakaoLoginService.loadKakaoLoginPage();
+    }
+
+    @Operation(
             summary = "카카오 로그인 리다이렉션 URI",
             parameters = { @Parameter(name = "code", description = "로그인 후 카카오 서버에서 반환하는 코드") }
     )
