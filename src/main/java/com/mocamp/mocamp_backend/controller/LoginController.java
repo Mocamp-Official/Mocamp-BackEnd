@@ -2,12 +2,15 @@ package com.mocamp.mocamp_backend.controller;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.dto.naver.NaverLoginResponse;
 import com.mocamp.mocamp_backend.service.login.GoogleLoginService;
 import com.mocamp.mocamp_backend.service.login.KakaoLoginService;
 import com.mocamp.mocamp_backend.service.login.NaverLoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,29 +51,26 @@ public class LoginController {
 
     @Operation(
             summary = "카카오 로그인 페이지 로딩",
-            responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
+            parameters = {@Parameter(name = "redirect_url", description = "리디렉션 될 주소")},
+            responses = {@ApiResponse(responseCode = "200", description = "URL 반환 성공") }
     )
     @GetMapping("/kakao/page")
-    public ResponseEntity<CommonResponse> loadKakaoLoginPage() {
-        return kakaoLoginService.loadKakaoLoginPage();
+    public ResponseEntity<CommonResponse> loadKakaoLoginPage(@RequestParam(name = "redirect_url") String redirect_url) {
+        return kakaoLoginService.loadKakaoLoginPage(redirect_url);
     }
 
     @Operation(
             summary = "카카오 로그인 리다이렉션 URI",
             parameters = {
                     @Parameter(name = "code", description = "로그인 후 카카오 서버에서 반환하는 코드"),
-                    @Parameter(name = "redirectBase", description = "로그인 완료 후, 프론트 측에서 리디렉션 될 URL")
-            }
+                    @Parameter(name = "redirect_url", description = "카카오 인가 코드 요청 시 사용한 redirect_uri와 동일한 값")
+            },
+            responses = {@ApiResponse(responseCode = "200", description = "로그인 성공 - JWT 토큰 반환")}
     )
     @GetMapping("/kakao/process")
-    public void kakaoLogin(@RequestParam(name = "code") String code, @RequestParam(name = "redirectBase") String redirectBase, HttpServletResponse response) throws IOException {
-        KakaoLoginResponse kakaoLoginResponse = kakaoLoginService.kakaoLogin(code);
-
-        String redirectUrl = redirectBase + "/oauth/kakao/success"
-                + "?accessToken=" + kakaoLoginResponse.getAccessToken()
-                + "&refreshToken=" + kakaoLoginResponse.getRefreshToken();
-
-        response.sendRedirect(redirectUrl);
+    public ResponseEntity<LoginResponse> kakaoLogin(@RequestParam(name = "code") String code, @RequestParam(name = "redirect_url") String redirect_url) {
+        LoginResponse loginResponse = kakaoLoginService.kakaoLogin(code, redirect_url);
+        return ResponseEntity.ok(loginResponse);
     }
 
     @Operation(
