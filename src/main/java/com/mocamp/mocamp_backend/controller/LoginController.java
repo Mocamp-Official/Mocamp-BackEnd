@@ -1,7 +1,6 @@
 package com.mocamp.mocamp_backend.controller;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
-import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.dto.naver.NaverLoginResponse;
 import com.mocamp.mocamp_backend.service.login.GoogleLoginService;
@@ -9,17 +8,11 @@ import com.mocamp.mocamp_backend.service.login.KakaoLoginService;
 import com.mocamp.mocamp_backend.service.login.NaverLoginService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
 
 @Tag(name = "Login Controller", description = "구글/카카오/네이버 소셜 로그인 엔드포인트")
 @RestController
