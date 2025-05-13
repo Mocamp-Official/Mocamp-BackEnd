@@ -45,6 +45,10 @@ public class SecurityConfig {
                             auth.requestMatchers("/healthy").permitAll();
                             auth.requestMatchers("/api/login/**").permitAll();
                             auth.requestMatchers("/api-docs/**").permitAll();
+                            auth.requestMatchers("/ws/**").permitAll();
+                            auth.requestMatchers("/ws").permitAll();
+                            auth.requestMatchers("/pub/**").permitAll();
+                            auth.requestMatchers("/sub/**").permitAll();
                             auth.anyRequest().authenticated();
                         }
                 ).addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
@@ -59,6 +63,7 @@ public class SecurityConfig {
         return request -> {
             CorsConfiguration config = new CorsConfiguration();
             config.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://mocamp-front-end.vercel.app/"));
+//            config.setAllowedOriginPatterns(List.of("*"));    // 소켓 테스트용
             config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
             config.setAllowedHeaders(List.of("*"));
             config.setAllowCredentials(true);
