@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CommonResponse {
     Integer code;
-    String message;
+    Object message;
 }
