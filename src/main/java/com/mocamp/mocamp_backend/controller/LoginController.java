@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +31,7 @@ public class LoginController {
             responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
     )
     @GetMapping("/google/page")
-    public ResponseEntity<CommonResponse> loadGoogleLoginPage() {
+    public ResponseEntity<CommonResponse<String>> loadGoogleLoginPage() {
         return googleLoginService.loadGoogleLoginPage();
     }
 
@@ -42,7 +41,7 @@ public class LoginController {
             responses = { @ApiResponse(responseCode = "200", description = "로그인 성공") }
     )
     @GetMapping("/google/process")
-    public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code) {
+    public ResponseEntity<CommonResponse<String>> loginViaGoogle(@RequestParam(name = "code") String code) {
         return googleLoginService.logInViaGoogle(code);
     }
 
