@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Builder
@@ -33,8 +34,12 @@ public class RoomEntity {
     @Column(name = "ended_at", nullable = false)
     private LocalDateTime endedAt;
 
+    @Column(name = "duration", nullable = false)
+    private LocalTime duration;
+
+    @Builder.Default
     @Column(nullable = false)
-    private String notice;
+    private String notice = "공지사항을 입력해주세요";
 
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
