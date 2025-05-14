@@ -2,12 +2,10 @@ package com.mocamp.mocamp_backend.dto.room;
 
 import com.mocamp.mocamp_backend.entity.RoomEntity;
 import lombok.Builder;
-import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Builder
-@RequiredArgsConstructor
 public class RoomResponse {
     private Long roomId;
     private String roomName;
