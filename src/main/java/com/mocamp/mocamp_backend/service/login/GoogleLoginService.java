@@ -118,14 +118,14 @@ public class GoogleLoginService {
      * 구글 로그인 페이지 로드를 위한 uri 제공 메서드
      * @return 로그인 페이지 uri
      */
-    public ResponseEntity<CommonResponse> loadGoogleLoginPage() {
+    public ResponseEntity<CommonResponse<String>> loadGoogleLoginPage() {
         String uri = googleLoginConfig.getLoginPageUri() + "?"
                 + "client_id=" + googleLoginConfig.getClientId()
                 + "&redirect_uri=" + googleLoginConfig.getRedirectUri()
                 + "&response_type=" + googleLoginConfig.getResponseType()
                 + "&scope=" + googleLoginConfig.getScope();
 
-        return ResponseEntity.ok(new SuccessResponse(200, uri));
+        return ResponseEntity.ok(new SuccessResponse<>(200, uri));
     }
 
     /**
@@ -134,7 +134,7 @@ public class GoogleLoginService {
      * @param code 클라이언트가 전달하는 코드
      */
     @Transactional
-    public ResponseEntity<CommonResponse> logInViaGoogle(String code) {
+    public ResponseEntity<CommonResponse<String>> logInViaGoogle(String code) {
         UserEntity userEntity;
         GoogleUserProfile googleUserProfile;
         String jwtToken;
@@ -144,7 +144,7 @@ public class GoogleLoginService {
             googleUserProfile = requestGoogleUserProfile(accessToken);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "Error: failed to get user profile from google"));
+                    .body(new ErrorResponse<>(403, "Error: failed to get user profile from google"));
         }
 
         try {
@@ -157,7 +157,7 @@ public class GoogleLoginService {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "Error: failed to load or save user profile"));
+                    .body(new ErrorResponse<>(403, "Error: failed to load or save user profile"));
         }
 
         try {
@@ -165,9 +165,9 @@ public class GoogleLoginService {
             jwtToken = jwtProvider.generateToken(authentication, JwtProvider.ACCESS_TOKEN_EXPIRE);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "Error: failed to create jwt token"));
+                    .body(new ErrorResponse<>(403, "Error: failed to create jwt token"));
         }
 
-        return ResponseEntity.ok(new SuccessResponse(200, jwtToken));
+        return ResponseEntity.ok(new SuccessResponse<>(200, jwtToken));
     }
 }
