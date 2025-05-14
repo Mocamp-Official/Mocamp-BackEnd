@@ -24,21 +24,25 @@ public class LoginController {
 
     @Operation(
             summary = "구글 로그인 페이지 로딩",
+            parameters = { @Parameter(name = "redirect_url", description = "구글 인가 코드 요청 시 사용한 redirect_uri와 동일한 값") },
             responses = { @ApiResponse(responseCode = "200", description = "URL 반환 성공") }
     )
     @GetMapping("/google/page")
-    public ResponseEntity<CommonResponse> loadGoogleLoginPage() {
-        return googleLoginService.loadGoogleLoginPage();
+    public ResponseEntity<CommonResponse> loadGoogleLoginPage(@RequestParam(name = "redirect_url") String redirectUrl) {
+        return googleLoginService.loadGoogleLoginPage(redirectUrl);
     }
 
     @Operation(
             summary = "구글 로그인 리다이렉션 URI",
-            parameters = { @Parameter(name = "code", description = "로그인 후 구글 서버에서 반환하는 코드") },
+            parameters = {
+                    @Parameter(name = "code", description = "로그인 후 구글 서버에서 반환하는 코드"),
+                    @Parameter(name = "redirect_url", description = "구글 인가 코드 요청 시 사용한 redirect_uri와 동일한 값")
+            },
             responses = { @ApiResponse(responseCode = "200", description = "로그인 성공") }
     )
     @GetMapping("/google/process")
-    public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code) {
-        return googleLoginService.logInViaGoogle(code);
+    public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code, @RequestParam(name = "redirect_url") String redirectUrl) {
+        return googleLoginService.logInViaGoogle(code, redirectUrl);
     }
 
     @Operation(
