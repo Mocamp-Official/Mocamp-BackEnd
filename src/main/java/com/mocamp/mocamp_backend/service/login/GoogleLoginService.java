@@ -5,15 +5,13 @@ import com.mocamp.mocamp_backend.configuration.GoogleLoginConfig;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.UserRepository;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.http.*;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -27,19 +25,14 @@ import java.util.Optional;
 @Service
 public class GoogleLoginService {
     private final UserRepository userRepository;
-    private final AuthenticationManager authenticationManager;
     private final GoogleLoginConfig googleLoginConfig;
-    private final HttpServletResponse httpServletResponse;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
-    public GoogleLoginService(final UserRepository userRepository, final AuthenticationManager authenticationManager,
-                              final GoogleLoginConfig googleLoginConfig,
-                              final HttpServletResponse httpServletResponse, final JwtProvider jwtProvider) {
+    public GoogleLoginService(final UserRepository userRepository, final GoogleLoginConfig googleLoginConfig,
+                              final JwtProvider jwtProvider) {
         this.userRepository = userRepository;
-        this.authenticationManager = authenticationManager;
         this.googleLoginConfig = googleLoginConfig;
-        this.httpServletResponse = httpServletResponse;
         this.jwtProvider = jwtProvider;
         this.restTemplate = new RestTemplate();
     }
@@ -49,7 +42,7 @@ public class GoogleLoginService {
      * 사용자가 로그인을 진행한 뒤에 생성되는 코드를 Query String으로 갖고 와서 구글에 요청을 보낸다
      * @param code 클라이언트가 전달해주는 코드 ({API Endpoint}/login/google?code={코드})
      */
-    private String requestGoogleAccessToken(final String code) {
+    private String requestGoogleAccessToken(final String code, final String redirectUri) {
         final String decodedCode = URLDecoder.decode(code, StandardCharsets.UTF_8);
         final HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
@@ -59,7 +52,7 @@ public class GoogleLoginService {
                 .clientId(googleLoginConfig.getClientId())
                 .clientSecret(googleLoginConfig.getClientSecret())
                 .grantType(googleLoginConfig.getGrantType())
-                .redirectUri(googleLoginConfig.getRedirectUri())
+                .redirectUri(redirectUri)
                 .build();
 
         HttpEntity<GoogleLoginRequest> httpEntity = new HttpEntity<>(googleClient, headers);
@@ -118,14 +111,14 @@ public class GoogleLoginService {
      * 구글 로그인 페이지 로드를 위한 uri 제공 메서드
      * @return 로그인 페이지 uri
      */
-    public ResponseEntity<CommonResponse<String>> loadGoogleLoginPage() {
+    public ResponseEntity<CommonResponse> loadGoogleLoginPage(String redirectUri) {
         String uri = googleLoginConfig.getLoginPageUri() + "?"
                 + "client_id=" + googleLoginConfig.getClientId()
-                + "&redirect_uri=" + googleLoginConfig.getRedirectUri()
+                + "&redirect_uri=" + redirectUri
                 + "&response_type=" + googleLoginConfig.getResponseType()
                 + "&scope=" + googleLoginConfig.getScope();
 
-        return ResponseEntity.ok(new SuccessResponse<>(200, uri));
+        return ResponseEntity.ok(new SuccessResponse(200, uri));
     }
 
     /**
@@ -134,17 +127,17 @@ public class GoogleLoginService {
      * @param code 클라이언트가 전달하는 코드
      */
     @Transactional
-    public ResponseEntity<CommonResponse<String>> logInViaGoogle(String code) {
+    public ResponseEntity<CommonResponse> logInViaGoogle(String code, String redirectUrl) {
         UserEntity userEntity;
         GoogleUserProfile googleUserProfile;
-        String jwtToken;
+        String jwtToken, refreshToken;
 
         try {
-            String accessToken = requestGoogleAccessToken(code);
+            String accessToken = requestGoogleAccessToken(code, redirectUrl);
             googleUserProfile = requestGoogleUserProfile(accessToken);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(403, "Error: failed to get user profile from google"));
+                    .body(new ErrorResponse(403, "Error: failed to get user profile from google"));
         }
 
         try {
@@ -157,17 +150,18 @@ public class GoogleLoginService {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(403, "Error: failed to load or save user profile"));
+                    .body(new ErrorResponse(403, "Error: failed to load or save user profile"));
         }
 
         try {
             Authentication authentication = createAuthenticationFromEmail(userEntity.getEmail());
-            jwtToken = jwtProvider.generateToken(authentication, JwtProvider.ACCESS_TOKEN_EXPIRE);
+            jwtToken = jwtProvider.generateAccessToken(authentication);
+            refreshToken = jwtProvider.generateRefreshToken(authentication);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse<>(403, "Error: failed to create jwt token"));
+                    .body(new ErrorResponse(403, "Error: failed to create jwt token"));
         }
 
-        return ResponseEntity.ok(new SuccessResponse<>(200, jwtToken));
+        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(jwtToken, refreshToken)));
     }
 }

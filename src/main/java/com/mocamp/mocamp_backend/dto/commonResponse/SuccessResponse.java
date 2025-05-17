@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class SuccessResponse<T> extends CommonResponse<T> {
-    public SuccessResponse(Integer code, T message) {
+public class SuccessResponse extends CommonResponse {
+    public SuccessResponse(Integer code, Object message) {
         super(code, message);
     }
 }

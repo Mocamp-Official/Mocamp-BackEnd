@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.naver.NaverLoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,17 +37,16 @@ public class NaverLoginService {
     private String clientId;
     @Value("${naver.client.secret}")
     private String clientSecret;
-    @Value("${naver.redirect.uri}")
-    private String redirectUri;
     private final static String NAVER_AUTH_URI = "https://nid.naver.com";
     private final static String NAVER_API_URI = "https://openapi.naver.com";
 
     /**
      * "인가 코드"로 네이버 "액세스 토큰" 요청하는 메서드
      * @param code -> 인가 코드
+     * @param redirect_url -> 리디렉션 url
      * @return AccessToken 반환
      */
-    private String getAccessToken(String code) {
+    private String getAccessToken(String code, String redirect_url) {
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-type", "application/x-www-form-urlencoded");
@@ -56,7 +55,7 @@ public class NaverLoginService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("client_id", clientId);
-        body.add("redirect_uri", redirectUri);
+        body.add("redirect_uri", redirect_url);
         body.add("code", code);
         body.add("client_secret", clientSecret);
 
@@ -131,7 +130,7 @@ public class NaverLoginService {
      * 네이버에서 받은 유저 정보를 기반으로 회원가입 or 로그인을 처리하여 jwt 토큰을 반환하는 메서드
      * @param naverUserInfo 네이버에서 받은 유저 정보(Map)
      */
-    private NaverLoginResponse naverUserLogin(HashMap<String, Object> naverUserInfo) {
+    private LoginResponse naverUserLogin(HashMap<String, Object> naverUserInfo) {
         String userSeq = naverUserInfo.get("id").toString();
         String naverEmail = naverUserInfo.get("email").toString();
         String nickname = naverUserInfo.get("nickname").toString();
@@ -146,13 +145,13 @@ public class NaverLoginService {
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createNaverLoginResponse(newUserEntity, accessToken, refreshToken);
+            return createLoginResponse(accessToken, refreshToken);
         } else { // 기존 로그인의 경우
             Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createNaverLoginResponse(optionalUserEntity, accessToken, refreshToken);
+            return createLoginResponse(accessToken, refreshToken);
         }
     }
 
@@ -189,16 +188,12 @@ public class NaverLoginService {
 
     /**
      * NaverLoginResponse 응답 객체를 생성하는 메서드
-     * @param userEntity 회원가입 or 로그인 한 유저 객체
      * @param accessToken 생성한 액세스 토큰
      * @param refreshToken 생성한 리프레쉬 토큰
      * @return 응답 객체 반환
      */
-    private NaverLoginResponse createNaverLoginResponse(UserEntity userEntity, String accessToken, String refreshToken) {
-        return NaverLoginResponse.builder()
-                .id(userEntity.getUserId())
-                .email(userEntity.getEmail())
-                .username(userEntity.getUsername())
+    private LoginResponse createLoginResponse(String accessToken, String refreshToken) {
+        return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -206,12 +201,13 @@ public class NaverLoginService {
 
     /**
      * 네이버 로그인 페이지 로드를 위한 uri 제공 메서드
+     * @param redirect_url 리디렉션 uri
      * @return 로그인 페이지 uri
      */
-    public ResponseEntity<CommonResponse> loadNaverLoginPage() {
+    public ResponseEntity<CommonResponse> loadNaverLoginPage(String redirect_url) {
         String uri = NAVER_AUTH_URI+ "/oauth2.0/authorize"
                 + "?client_id=" + clientId
-                + "&redirect_uri=" + redirectUri
+                + "&redirect_uri=" + redirect_url
                 + "&response_type=code";
 
         return ResponseEntity.ok(new SuccessResponse(200, uri));
@@ -220,11 +216,12 @@ public class NaverLoginService {
     /**
      * 네이버 로그인을 처리하는 메서드
      * @param code 인가 코드
+     * @param redirect_url 리디렉션 url
      * @return 네이버 로그인 응답 메시지 반환
      */
-    public NaverLoginResponse naverLogin(String code) {
+    public LoginResponse naverLogin(String code, String redirect_url) {
         // 1. "인가 코드"로 "액세스 토큰" 요청
-        String naverAccessToken = getAccessToken(code);
+        String naverAccessToken = getAccessToken(code, redirect_url);
         System.out.println(naverAccessToken);
 
         // 2. "액세스 토큰"으로 네이버 API 호출 후, 유저 정보 받아오기

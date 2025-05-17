@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.kakao.KakaoLoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +35,6 @@ public class KakaoLoginService {
     private final JwtProvider jwtProvider;
     @Value("${kakao.key.client-id}")
     private String clientId;
-    @Value("${kakao.redirect-uri}")
-    private String redirectUri;
     @Value("${kakao.page.uri}")
     private String pageUri;
 
@@ -45,7 +43,7 @@ public class KakaoLoginService {
      * @param code -> 인가 코드
      * @return AccessToken 반환
      */
-    private String getAccessToken(String code) {
+    private String getAccessToken(String code, String redirect_url) {
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
@@ -54,7 +52,7 @@ public class KakaoLoginService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("client_id", clientId);
-        body.add("redirect_uri", redirectUri);
+        body.add("redirect_uri", redirect_url);
         body.add("code", code);
 
         // HTTP 요청 보내기
@@ -137,9 +135,9 @@ public class KakaoLoginService {
     /**
      * 카카오에서 받은 유저 정보를 기반으로 회원가입 or 로그인을 처리하여 jwt 토큰을 반환하는 메서드
      * @param kakaoUserInfo 카카오에서 받은 유저 정보(Map)
-     * @return 카카오 로그인 응답 객체 반환
+     * @return 로그인 응답 객체 반환
      */
-    private KakaoLoginResponse kakaoUserLogin(HashMap<String, Object> kakaoUserInfo) {
+    private LoginResponse kakaoUserLogin(HashMap<String, Object> kakaoUserInfo) {
         String userSeq = kakaoUserInfo.get("id").toString();
         String kakaoEmail = kakaoUserInfo.get("email").toString();
         String nickname = kakaoUserInfo.get("nickname").toString();
@@ -154,28 +152,24 @@ public class KakaoLoginService {
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createKakaoLoginResponse(newUserEntity, accessToken, refreshToken);
+            return createLoginResponse(accessToken, refreshToken);
         } else { // 기존 로그인의 경우
             Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createKakaoLoginResponse(optionalUserEntity, accessToken, refreshToken);
+            return createLoginResponse(accessToken, refreshToken);
         }
     }
 
     /**
-     * KakaoLoginResponse 응답 객체를 생성하는 메서드
-     * @param userEntity 회원가입 or 로그인 한 유저 객체
+     * LoginResponse 응답 객체를 생성하는 메서드
      * @param accessToken 생성한 액세스 토큰
      * @param refreshToken 생성한 리프레쉬 토큰
      * @return 응답 객체 반환
      */
-    private KakaoLoginResponse createKakaoLoginResponse(UserEntity userEntity, String accessToken, String refreshToken) {
-        return KakaoLoginResponse.builder()
-                .id(userEntity.getUserId())
-                .email(userEntity.getEmail())
-                .username(userEntity.getUsername())
+    private LoginResponse createLoginResponse(String accessToken, String refreshToken) {
+        return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -197,11 +191,11 @@ public class KakaoLoginService {
     /**
      * 카카오 로그인을 처리하는 메서드
      * @param code 인가 코드
-     * @return 카카오 로그인 완료 응답 메시지 반환
+     * @return 로그인 완료 응답 메시지 반환
      */
-    public KakaoLoginResponse kakaoLogin(String code) {
+    public LoginResponse kakaoLogin(String code, String redirectUri) {
         // 1. "인가 코드"로 "액세스 토큰" 요청
-        String KakaoAccessToken = getAccessToken(code);
+        String KakaoAccessToken = getAccessToken(code, redirectUri);
         System.out.println(KakaoAccessToken);
 
         // 2. "액세스 토큰"으로 카카오 API 호출 후, 유저 정보 받아오기
@@ -216,10 +210,10 @@ public class KakaoLoginService {
      * 카카오 로그인 페이지 로드를 위한 uri 제공 메서드
      * @return 로그인 페이지 uri
      */
-    public ResponseEntity<CommonResponse> loadKakaoLoginPage() {
+    public ResponseEntity<CommonResponse> loadKakaoLoginPage(String redirect_url) {
         String uri = pageUri + "?"
                 + "client_id=" + clientId
-                + "&redirect_uri=" + redirectUri
+                + "&redirect_uri=" + redirect_url
                 + "&response_type=code";
 
         return ResponseEntity.ok(new SuccessResponse(200, uri));
