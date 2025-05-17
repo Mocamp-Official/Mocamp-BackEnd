@@ -22,11 +22,14 @@ public class RoomEntity {
     @Column(name = "room_name", nullable = false)
     private String roomName;
 
+    @Column(name = "room_seq", nullable = false)
+    private String roomSeq;
+
     @Column(nullable = false)
     private Integer capacity;
 
     @Column(nullable = false)
-    private String status;
+    private Boolean status;    // true: 활동중, false: 종료
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
