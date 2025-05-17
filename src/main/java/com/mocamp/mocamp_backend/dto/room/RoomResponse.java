@@ -10,18 +10,20 @@ public class RoomResponse {
     private Long roomId;
     private String roomName;
     private Integer capacity;
+    private Boolean status;
     private String notice;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private LocalTime duration;
     private String imagePath;
-    private String micAvailability;
+    private Boolean micAvailability;
 
-    public static RoomResponse convertEntityToDTO(RoomEntity roomEntity, String micAvailability) {
+    public static RoomResponse convertEntityToDTO(RoomEntity roomEntity, Boolean micAvailability) {
         return RoomResponse.builder()
                 .roomId(roomEntity.getRoomId())
                 .roomName(roomEntity.getRoomName())
                 .capacity(roomEntity.getCapacity())
+                .status(roomEntity.getStatus())
                 .notice(roomEntity.getNotice())
                 .startedAt(roomEntity.getStartedAt())
                 .endedAt(roomEntity.getEndedAt())

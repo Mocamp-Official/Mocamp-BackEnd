@@ -1,18 +1,20 @@
 package com.mocamp.mocamp_backend.dto.room;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class RoomCreateRequest {
     private String roomName;
     private Integer capacity;
     private String description;
     private String duration;
     private String imagePath;
-    private String micAvailability;
+    private Boolean micAvailability;
 
-    private String micTurnedOn;
-    private String camTurnedOn;
+    private Boolean micTurnedOn;
+    private Boolean camTurnedOn;
 }
