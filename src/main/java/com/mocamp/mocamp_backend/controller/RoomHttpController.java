@@ -3,7 +3,6 @@ package com.mocamp.mocamp_backend.controller;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.room.RoomCreateRequest;
 import com.mocamp.mocamp_backend.dto.room.RoomEnterRequest;
-import com.mocamp.mocamp_backend.dto.room.RoomResponse;
 import com.mocamp.mocamp_backend.service.room.RoomHttpService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 
 @Tag(name = "Room Controller", description = "모캠프 작업 공간(방) 메타 데이터 저장을 위한 HTTP 엔드포엔트")
 @RestController
@@ -28,7 +26,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "작업 공간 생성 성공") }
     )
     @PostMapping("/create")
-    public ResponseEntity<CommonResponse<RoomResponse>> createRoom(
+    public ResponseEntity<CommonResponse> createRoom(
             @RequestHeader(name = "Authorization") String token,
             @RequestBody RoomCreateRequest roomCreateRequest) {
         return roomHttpService.createRoom(token, roomCreateRequest);
@@ -43,7 +41,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "입장 성공") }
     )
     @PostMapping("/enter/{roomId}")
-    public ResponseEntity<CommonResponse<RoomResponse>> enterRoom(
+    public ResponseEntity<CommonResponse> enterRoom(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId,
             @RequestBody RoomEnterRequest roomEnterRequest) {
@@ -59,7 +57,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "퇴장 성공") }
     )
     @PostMapping("/exit/{roomId}")
-    public ResponseEntity<CommonResponse<String>> exitRoom(
+    public ResponseEntity<CommonResponse> exitRoom(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.exitRoom(token, roomId);
@@ -74,7 +72,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "데이터 수정 성공") }
     )
     @PostMapping("/modify/{roomId}")
-    public ResponseEntity<CommonResponse<String>> modifyRoomData(
+    public ResponseEntity<CommonResponse> modifyRoomData(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.modifyRoomData(token, roomId);
@@ -91,7 +89,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "데이터 조회 성공") }
     )
     @GetMapping("/{roomId}")
-    public ResponseEntity<CommonResponse<RoomResponse>> getRoomData(
+    public ResponseEntity<CommonResponse> getRoomData(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.getRoomData(token, roomId);
@@ -106,7 +104,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "시간 데이터 조회 성공") }
     )
     @GetMapping("/time/{roomId}")
-    public ResponseEntity<CommonResponse<LocalDateTime>> getRoomTime(
+    public ResponseEntity<CommonResponse> getRoomTime(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.getRoomTime(token, roomId);
@@ -121,7 +119,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "참여 인원 수 조회 성공") }
     )
     @GetMapping("/participant/{roomId}")
-    public ResponseEntity<CommonResponse<Integer>> getRoomParticipant(
+    public ResponseEntity<CommonResponse> getRoomParticipant(
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.getRoomParticipant(token, roomId);
