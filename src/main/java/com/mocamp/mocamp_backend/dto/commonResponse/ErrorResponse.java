@@ -4,6 +4,6 @@ import lombok.*;
 
 @Getter
 @RequiredArgsConstructor
-public class ErrorResponse<T> extends CommonResponse<T> {
-    public ErrorResponse(Integer code, T message) { super(code, message); }
+public class ErrorResponse extends CommonResponse {
+    public ErrorResponse(Integer code, Object message) { super(code, message); }
 }
