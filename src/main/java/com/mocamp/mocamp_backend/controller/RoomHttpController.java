@@ -78,8 +78,6 @@ public class RoomHttpController {
         return roomHttpService.modifyRoomData(token, roomId);
     }
 
-
-
     @Operation(
             summary = "모캠프 방 정보 조회",
             parameters = {
@@ -93,35 +91,5 @@ public class RoomHttpController {
             @RequestHeader(name = "Authorization") String token,
             @PathVariable String roomId) {
         return roomHttpService.getRoomData(token, roomId);
-    }
-
-    @Operation(
-            summary = "남은 시간 업데이트",
-            parameters = {
-                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
-                    @Parameter(name = "roomId", description = "데이터를 조회하고자 하는 방 ID", required = true)
-            },
-            responses = { @ApiResponse(responseCode = "200", description = "시간 데이터 조회 성공") }
-    )
-    @GetMapping("/time/{roomId}")
-    public ResponseEntity<CommonResponse> getRoomTime(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId) {
-        return roomHttpService.getRoomTime(token, roomId);
-    }
-
-    @Operation(
-            summary = "참여 인원 수 업데이트",
-            parameters = {
-                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
-                    @Parameter(name = "roomId", description = "데이터를 조회하고자 하는 방 ID", required = true)
-            },
-            responses = { @ApiResponse(responseCode = "200", description = "참여 인원 수 조회 성공") }
-    )
-    @GetMapping("/participant/{roomId}")
-    public ResponseEntity<CommonResponse> getRoomParticipant(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId) {
-        return roomHttpService.getRoomParticipant(token, roomId);
     }
 }
