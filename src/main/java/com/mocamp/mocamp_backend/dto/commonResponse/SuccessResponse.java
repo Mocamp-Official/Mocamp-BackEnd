@@ -1,6 +1,5 @@
 package com.mocamp.mocamp_backend.dto.commonResponse;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

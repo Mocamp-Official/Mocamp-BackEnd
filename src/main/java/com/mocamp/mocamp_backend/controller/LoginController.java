@@ -1,14 +1,20 @@
 package com.mocamp.mocamp_backend.controller;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
+import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
 import com.mocamp.mocamp_backend.service.login.GoogleLoginService;
 import com.mocamp.mocamp_backend.service.login.KakaoLoginService;
 import com.mocamp.mocamp_backend.service.login.NaverLoginService;
+import com.mocamp.mocamp_backend.service.login.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +27,23 @@ public class LoginController {
     private final GoogleLoginService googleLoginService;
     private final KakaoLoginService kakaoLoginService;
     private final NaverLoginService naverLoginService;
+    private final TokenService tokenService;
+
+    /**
+     * 리프레쉬 토큰을 쿠키에 담는 메서드
+     * @param refreshToken 리프레쉬 토큰
+     * @return 쿠키
+     */
+    private Cookie createRefreshTokenCookie(String refreshToken) {
+        String cookieName = "refreshToken";
+        String cookieValue = refreshToken;
+        Cookie cookie = new Cookie(cookieName, cookieValue);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24 * 15);
+        return cookie;
+    }
 
     @Operation(
             summary = "구글 로그인 페이지 로딩",
@@ -41,8 +64,10 @@ public class LoginController {
             responses = { @ApiResponse(responseCode = "200", description = "로그인 성공") }
     )
     @GetMapping("/google/process")
-    public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code, @RequestParam(name = "redirect_url") String redirectUrl) {
-        return googleLoginService.logInViaGoogle(code, redirectUrl);
+    public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code,
+                                                         @RequestParam(name = "redirect_url") String redirectUrl,
+                                                         HttpServletResponse response) {
+        return googleLoginService.logInViaGoogle(code, redirectUrl, response);
     }
 
     @Operation(
@@ -64,9 +89,15 @@ public class LoginController {
             responses = {@ApiResponse(responseCode = "200", description = "로그인 성공 - JWT 토큰 반환")}
     )
     @GetMapping("/kakao/process")
-    public ResponseEntity<LoginResponse> kakaoLogin(@RequestParam(name = "code") String code, @RequestParam(name = "redirect_url") String redirect_url) {
-        LoginResponse loginResponse = kakaoLoginService.kakaoLogin(code, redirect_url);
-        return ResponseEntity.ok(loginResponse);
+    public ResponseEntity<CommonResponse> kakaoLogin(@RequestParam(name = "code") String code,
+                                                     @RequestParam(name = "redirect_url") String redirect_url,
+                                                     HttpServletResponse response) {
+        LoginResult loginResult = kakaoLoginService.kakaoLogin(code, redirect_url);
+
+        Cookie refreshTokenCookie = createRefreshTokenCookie(loginResult.getRefreshToken());
+        response.addCookie(refreshTokenCookie);
+
+        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(loginResult.getAccessToken())));
     }
 
     @Operation(
@@ -88,8 +119,27 @@ public class LoginController {
             responses = {@ApiResponse(responseCode = "200", description = "로그인 성공 - JWT 토큰 반환")}
     )
     @GetMapping("/naver/process")
-    public ResponseEntity<LoginResponse> naverLogin(@RequestParam(name = "code") String code, @RequestParam(name = "redirect_url") String redirect_url) {
-        LoginResponse loginResponse = naverLoginService.naverLogin(code, redirect_url);
-        return ResponseEntity.ok(loginResponse);
+    public ResponseEntity<CommonResponse> naverLogin(@RequestParam(name = "code") String code,
+                                                     @RequestParam(name = "redirect_url") String redirect_url,
+                                                     HttpServletResponse response) {
+        LoginResult loginResult = naverLoginService.naverLogin(code, redirect_url);
+
+        Cookie refreshTokenCookie = createRefreshTokenCookie(loginResult.getRefreshToken());
+        response.addCookie(refreshTokenCookie);
+
+        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(loginResult.getAccessToken())));
     }
+
+    @Operation(
+            summary = "JWT 토큰 재발급",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "토큰 재발급 성공"),
+                    @ApiResponse(responseCode = "403", description = "리프레시 토큰 불일치 또는 유효하지 않음")
+            }
+    )
+    @PostMapping("/re-issue")
+    public ResponseEntity<CommonResponse> reIssueToken(HttpServletRequest request, HttpServletResponse response) {
+        return tokenService.reIssueToken(request, response);
+    }
+
 }
