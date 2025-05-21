@@ -29,6 +29,11 @@ public class LoginController {
     private final NaverLoginService naverLoginService;
     private final TokenService tokenService;
 
+    /**
+     * 리프레쉬 토큰을 쿠키에 담는 메서드
+     * @param refreshToken 리프레쉬 토큰
+     * @return 쿠키
+     */
     private Cookie createRefreshTokenCookie(String refreshToken) {
         String cookieName = "refreshToken";
         String cookieValue = refreshToken;
@@ -62,16 +67,7 @@ public class LoginController {
     public ResponseEntity<CommonResponse> loginViaGoogle(@RequestParam(name = "code") String code,
                                                          @RequestParam(name = "redirect_url") String redirectUrl,
                                                          HttpServletResponse response) {
-        System.out.println("asdasd");
-        ResponseEntity<CommonResponse> responseEntity = googleLoginService.logInViaGoogle(code, redirectUrl);
-        CommonResponse body = responseEntity.getBody();
-
-        if (body instanceof SuccessResponse success && success.getMessage() instanceof LoginResult loginResult) {
-            response.addCookie(createRefreshTokenCookie(loginResult.getRefreshToken()));
-            return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(loginResult.getAccessToken())));
-        }
-
-        return responseEntity;
+        return googleLoginService.logInViaGoogle(code, redirectUrl, response);
     }
 
     @Operation(
