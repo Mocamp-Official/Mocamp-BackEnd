@@ -7,7 +7,10 @@ import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.http.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,13 +28,15 @@ import java.util.Optional;
 @Service
 public class GoogleLoginService {
     private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
     private final GoogleLoginConfig googleLoginConfig;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
-    public GoogleLoginService(final UserRepository userRepository, final GoogleLoginConfig googleLoginConfig,
+    public GoogleLoginService(final UserRepository userRepository, final TokenRepository tokenRepository, final GoogleLoginConfig googleLoginConfig,
                               final JwtProvider jwtProvider) {
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
         this.googleLoginConfig = googleLoginConfig;
         this.jwtProvider = jwtProvider;
         this.restTemplate = new RestTemplate();
@@ -108,6 +113,22 @@ public class GoogleLoginService {
     }
 
     /**
+     * 리프레쉬 토큰을 쿠키에 담는 메서드
+     * @param refreshToken 리프레쉬 토큰
+     * @return 쿠키
+     */
+    private Cookie createRefreshTokenCookie(String refreshToken) {
+        String cookieName = "refreshToken";
+        String cookieValue = refreshToken;
+        Cookie cookie = new Cookie(cookieName, cookieValue);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24 * 15);
+        return cookie;
+    }
+
+    /**
      * 구글 로그인 페이지 로드를 위한 uri 제공 메서드
      * @return 로그인 페이지 uri
      */
@@ -127,7 +148,7 @@ public class GoogleLoginService {
      * @param code 클라이언트가 전달하는 코드
      */
     @Transactional
-    public ResponseEntity<CommonResponse> logInViaGoogle(String code, String redirectUrl) {
+    public ResponseEntity<CommonResponse> logInViaGoogle(String code, String redirectUrl, HttpServletResponse response) {
         UserEntity userEntity;
         GoogleUserProfile googleUserProfile;
         String jwtToken, refreshToken;
@@ -157,11 +178,14 @@ public class GoogleLoginService {
             Authentication authentication = createAuthenticationFromEmail(userEntity.getEmail());
             jwtToken = jwtProvider.generateAccessToken(authentication);
             refreshToken = jwtProvider.generateRefreshToken(authentication);
+
+            tokenRepository.save(userEntity.getUserId(), refreshToken);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "Error: failed to create jwt token"));
         }
 
-        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(jwtToken, refreshToken)));
+        response.addCookie(createRefreshTokenCookie(refreshToken));
+        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(jwtToken)));
     }
 }
