@@ -5,8 +5,9 @@ import com.mocamp.mocamp_backend.configuration.GoogleLoginConfig;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.*;
@@ -25,13 +26,15 @@ import java.util.Optional;
 @Service
 public class GoogleLoginService {
     private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
     private final GoogleLoginConfig googleLoginConfig;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
 
-    public GoogleLoginService(final UserRepository userRepository, final GoogleLoginConfig googleLoginConfig,
+    public GoogleLoginService(final UserRepository userRepository, final TokenRepository tokenRepository, final GoogleLoginConfig googleLoginConfig,
                               final JwtProvider jwtProvider) {
         this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
         this.googleLoginConfig = googleLoginConfig;
         this.jwtProvider = jwtProvider;
         this.restTemplate = new RestTemplate();
@@ -157,11 +160,13 @@ public class GoogleLoginService {
             Authentication authentication = createAuthenticationFromEmail(userEntity.getEmail());
             jwtToken = jwtProvider.generateAccessToken(authentication);
             refreshToken = jwtProvider.generateRefreshToken(authentication);
+
+            tokenRepository.save(userEntity.getUserId(), refreshToken);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "Error: failed to create jwt token"));
         }
 
-        return ResponseEntity.ok(new SuccessResponse(200, new LoginResponse(jwtToken, refreshToken)));
+        return ResponseEntity.ok(new SuccessResponse(200, new LoginResult(jwtToken, refreshToken)));
     }
 }

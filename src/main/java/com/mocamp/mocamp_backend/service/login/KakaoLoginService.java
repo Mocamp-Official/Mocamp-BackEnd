@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class KakaoLoginService {
 
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
+    private final TokenRepository tokenRepository;
     @Value("${kakao.key.client-id}")
     private String clientId;
     @Value("${kakao.page.uri}")
@@ -137,7 +139,7 @@ public class KakaoLoginService {
      * @param kakaoUserInfo 카카오에서 받은 유저 정보(Map)
      * @return 로그인 응답 객체 반환
      */
-    private LoginResponse kakaoUserLogin(HashMap<String, Object> kakaoUserInfo) {
+    private LoginResult kakaoUserLogin(HashMap<String, Object> kakaoUserInfo) {
         String userSeq = kakaoUserInfo.get("id").toString();
         String kakaoEmail = kakaoUserInfo.get("email").toString();
         String nickname = kakaoUserInfo.get("nickname").toString();
@@ -152,24 +154,28 @@ public class KakaoLoginService {
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createLoginResponse(accessToken, refreshToken);
+            tokenRepository.save(newUserEntity.getUserId(), refreshToken);
+
+            return createLoginResult(accessToken, refreshToken);
         } else { // 기존 로그인의 경우
             Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createLoginResponse(accessToken, refreshToken);
+            tokenRepository.save(optionalUserEntity.getUserId(), refreshToken);
+
+            return createLoginResult(accessToken, refreshToken);
         }
     }
 
     /**
-     * LoginResponse 응답 객체를 생성하는 메서드
+     * LoginResult 응답 객체를 생성하는 메서드
      * @param accessToken 생성한 액세스 토큰
      * @param refreshToken 생성한 리프레쉬 토큰
      * @return 응답 객체 반환
      */
-    private LoginResponse createLoginResponse(String accessToken, String refreshToken) {
-        return LoginResponse.builder()
+    private LoginResult createLoginResult(String accessToken, String refreshToken) {
+        return LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -193,7 +199,7 @@ public class KakaoLoginService {
      * @param code 인가 코드
      * @return 로그인 완료 응답 메시지 반환
      */
-    public LoginResponse kakaoLogin(String code, String redirectUri) {
+    public LoginResult kakaoLogin(String code, String redirectUri) {
         // 1. "인가 코드"로 "액세스 토큰" 요청
         String KakaoAccessToken = getAccessToken(code, redirectUri);
         System.out.println(KakaoAccessToken);
@@ -204,7 +210,9 @@ public class KakaoLoginService {
 
         //3. 카카오ID로 회원가입 & 로그인 처리
         return kakaoUserLogin(kakaoUserInfo);
+
     }
+
 
     /**
      * 카카오 로그인 페이지 로드를 위한 uri 제공 메서드

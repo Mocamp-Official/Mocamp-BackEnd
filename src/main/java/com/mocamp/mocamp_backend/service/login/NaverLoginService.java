@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
+import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 public class NaverLoginService {
 
     private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
     private final JwtProvider jwtProvider;
     @Value("${naver.client.id}")
     private String clientId;
@@ -130,7 +132,7 @@ public class NaverLoginService {
      * 네이버에서 받은 유저 정보를 기반으로 회원가입 or 로그인을 처리하여 jwt 토큰을 반환하는 메서드
      * @param naverUserInfo 네이버에서 받은 유저 정보(Map)
      */
-    private LoginResponse naverUserLogin(HashMap<String, Object> naverUserInfo) {
+    private LoginResult naverUserLogin(HashMap<String, Object> naverUserInfo) {
         String userSeq = naverUserInfo.get("id").toString();
         String naverEmail = naverUserInfo.get("email").toString();
         String nickname = naverUserInfo.get("nickname").toString();
@@ -145,13 +147,17 @@ public class NaverLoginService {
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createLoginResponse(accessToken, refreshToken);
+            tokenRepository.save(newUserEntity.getUserId(), refreshToken);
+
+            return createLoginResult(accessToken, refreshToken);
         } else { // 기존 로그인의 경우
             Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
-            return createLoginResponse(accessToken, refreshToken);
+            tokenRepository.save(optionalUserEntity.getUserId(), refreshToken);
+
+            return createLoginResult(accessToken, refreshToken);
         }
     }
 
@@ -187,13 +193,13 @@ public class NaverLoginService {
     }
 
     /**
-     * NaverLoginResponse 응답 객체를 생성하는 메서드
+     * LoginResult 응답 객체를 생성하는 메서드
      * @param accessToken 생성한 액세스 토큰
      * @param refreshToken 생성한 리프레쉬 토큰
      * @return 응답 객체 반환
      */
-    private LoginResponse createLoginResponse(String accessToken, String refreshToken) {
-        return LoginResponse.builder()
+    private LoginResult createLoginResult(String accessToken, String refreshToken) {
+        return LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -219,7 +225,7 @@ public class NaverLoginService {
      * @param redirect_url 리디렉션 url
      * @return 네이버 로그인 응답 메시지 반환
      */
-    public LoginResponse naverLogin(String code, String redirect_url) {
+    public LoginResult naverLogin(String code, String redirect_url) {
         // 1. "인가 코드"로 "액세스 토큰" 요청
         String naverAccessToken = getAccessToken(code, redirect_url);
         System.out.println(naverAccessToken);
