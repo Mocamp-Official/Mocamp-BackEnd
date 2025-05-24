@@ -1,6 +1,7 @@
 package com.mocamp.mocamp_backend.controller;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
+import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
 import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
@@ -38,8 +39,13 @@ public class RoomSocketController {
 
     }
 
-    @MessageMapping("/data/goal/create/{roomId}")
-    public ResponseEntity<CommonResponse> createGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
-        return goalSocketService.createGoal(goalListRequest, roomId);
+    @MessageMapping("/data/goal/manage/{roomId}")
+    public ResponseEntity<CommonResponse> manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
+        return goalSocketService.manageGoal(goalListRequest, roomId);
+    }
+
+    @MessageMapping("/data/goal/complete/{roomId}")
+    public ResponseEntity<CommonResponse> pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId) {
+        return goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId);
     }
 }
