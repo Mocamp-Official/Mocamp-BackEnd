@@ -27,9 +27,8 @@ public class RoomHttpController {
     )
     @PostMapping("/create")
     public ResponseEntity<CommonResponse> createRoom(
-            @RequestHeader(name = "Authorization") String token,
             @RequestBody RoomCreateRequest roomCreateRequest) {
-        return roomHttpService.createRoom(token, roomCreateRequest);
+        return roomHttpService.createRoom(roomCreateRequest);
     }
 
     @Operation(
@@ -42,10 +41,9 @@ public class RoomHttpController {
     )
     @PostMapping("/enter/{roomId}")
     public ResponseEntity<CommonResponse> enterRoom(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId,
+            @PathVariable Long roomId,
             @RequestBody RoomEnterRequest roomEnterRequest) {
-        return roomHttpService.enterRoom(token, roomId, roomEnterRequest);
+        return roomHttpService.enterRoom(roomId, roomEnterRequest);
     }
 
     @Operation(
@@ -58,9 +56,8 @@ public class RoomHttpController {
     )
     @PostMapping("/exit/{roomId}")
     public ResponseEntity<CommonResponse> exitRoom(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId) {
-        return roomHttpService.exitRoom(token, roomId);
+            @PathVariable Long roomId) {
+        return roomHttpService.exitRoom(roomId, null);
     }
 
     @Operation(
@@ -73,9 +70,8 @@ public class RoomHttpController {
     )
     @PostMapping("/modify/{roomId}")
     public ResponseEntity<CommonResponse> modifyRoomData(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId) {
-        return roomHttpService.modifyRoomData(token, roomId);
+            @PathVariable Long roomId) {
+        return roomHttpService.modifyRoomData(roomId, null);
     }
 
     @Operation(
@@ -88,8 +84,7 @@ public class RoomHttpController {
     )
     @GetMapping("/{roomId}")
     public ResponseEntity<CommonResponse> getRoomData(
-            @RequestHeader(name = "Authorization") String token,
-            @PathVariable String roomId) {
-        return roomHttpService.getRoomData(token, roomId);
+            @PathVariable Long roomId) {
+        return roomHttpService.getRoomData(roomId);
     }
 }
