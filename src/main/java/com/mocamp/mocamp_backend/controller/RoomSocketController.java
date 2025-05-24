@@ -40,12 +40,12 @@ public class RoomSocketController {
     }
 
     @MessageMapping("/data/goal/manage/{roomId}")
-    public ResponseEntity<CommonResponse> manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
-        return goalSocketService.manageGoal(goalListRequest, roomId);
+    public void manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
+        goalSocketService.manageGoal(goalListRequest, roomId);
     }
 
     @MessageMapping("/data/goal/complete/{roomId}")
-    public ResponseEntity<CommonResponse> pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId) {
-        return goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId);
+    public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId) {
+        goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId);
     }
 }
