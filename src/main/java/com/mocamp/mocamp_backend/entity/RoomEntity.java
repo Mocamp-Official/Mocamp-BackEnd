@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Builder
@@ -21,11 +22,18 @@ public class RoomEntity {
     @Column(name = "room_name", nullable = false)
     private String roomName;
 
+    @Column(name = "room_seq", nullable = false)
+    private String roomSeq;
+
     @Column(nullable = false)
     private Integer capacity;
 
     @Column(nullable = false)
-    private String status;
+    @Builder.Default
+    private Integer roomNum = 0;
+
+    @Column(nullable = false)
+    private Boolean status;    // true: 활동중, false: 종료
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
@@ -33,12 +41,20 @@ public class RoomEntity {
     @Column(name = "ended_at", nullable = false)
     private LocalDateTime endedAt;
 
+    @Column(name = "duration", nullable = false)
+    private LocalTime duration;
+
+    @Builder.Default
     @Column(nullable = false)
-    private String notice;
+    private String notice = "공지사항을 입력해주세요";
 
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
+
+    @Builder.Default
+    @Column(name = "mic_availability", nullable = false)
+    private Boolean micAvailability = true;
 
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
