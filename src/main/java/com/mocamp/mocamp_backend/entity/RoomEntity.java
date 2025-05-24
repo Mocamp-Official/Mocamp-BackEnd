@@ -29,6 +29,10 @@ public class RoomEntity {
     private Integer capacity;
 
     @Column(nullable = false)
+    @Builder.Default
+    private Integer roomNum = 0;
+
+    @Column(nullable = false)
     private Boolean status;    // true: 활동중, false: 종료
 
     @Column(name = "started_at", nullable = false)
@@ -47,6 +51,10 @@ public class RoomEntity {
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
+
+    @Builder.Default
+    @Column(name = "mic_availability", nullable = false)
+    private Boolean micAvailability = true;
 
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)

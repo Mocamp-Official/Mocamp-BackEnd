@@ -1,14 +1,20 @@
 package com.mocamp.mocamp_backend.dto.room;
 
 import com.mocamp.mocamp_backend.entity.RoomEntity;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Builder
+@Getter
+@AllArgsConstructor
 public class RoomResponse {
     private Long roomId;
     private String roomName;
+    private String roomSeq;
     private Integer capacity;
     private Boolean status;
     private String notice;
@@ -17,11 +23,14 @@ public class RoomResponse {
     private LocalTime duration;
     private String imagePath;
     private Boolean micAvailability;
+    private Boolean micTurnedOn;
+    private Boolean camTurnedOn;
 
-    public static RoomResponse convertEntityToDTO(RoomEntity roomEntity, Boolean micAvailability) {
+    public static RoomResponse convertEntityToDTO(RoomEntity roomEntity, Boolean camTurnedOn, Boolean micTurnedOn) {
         return RoomResponse.builder()
                 .roomId(roomEntity.getRoomId())
                 .roomName(roomEntity.getRoomName())
+                .roomSeq(roomEntity.getRoomSeq())
                 .capacity(roomEntity.getCapacity())
                 .status(roomEntity.getStatus())
                 .notice(roomEntity.getNotice())
@@ -29,7 +38,9 @@ public class RoomResponse {
                 .endedAt(roomEntity.getEndedAt())
                 .duration(roomEntity.getDuration())
                 .imagePath(roomEntity.getImage().getPath())
-                .micAvailability(micAvailability)
+                .micAvailability(roomEntity.getMicAvailability())
+                .camTurnedOn(camTurnedOn)
+                .micTurnedOn(micTurnedOn)
                 .build();
     }
 }
