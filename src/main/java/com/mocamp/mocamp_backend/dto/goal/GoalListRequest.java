@@ -10,6 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GoalListRequest {
-
-    private List<GoalRequest> goals;
+    private List<GoalRequest> createGoals;
+    private List<Long> deleteGoals;
 }
