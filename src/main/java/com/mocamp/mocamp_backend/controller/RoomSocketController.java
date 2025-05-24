@@ -1,10 +1,15 @@
 package com.mocamp.mocamp_backend.controller;
 
+import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
+import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
+import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
@@ -13,6 +18,7 @@ import org.springframework.stereotype.Controller;
 public class RoomSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final RoomSocketService roomSocketService;
+    private final GoalSocketService goalSocketService;
 
     @MessageMapping("/video/{roomId}")
     public void streamVideo(@Header("Authorization") String token,
@@ -30,5 +36,10 @@ public class RoomSocketController {
     public void sendNotice(@Header("Authorization") String token,
                            @DestinationVariable("roomId") Long roomId) {
 
+    }
+
+    @MessageMapping("/data/goal/create/{roomId}")
+    public ResponseEntity<CommonResponse> createGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
+        return goalSocketService.createGoal(goalListRequest, roomId);
     }
 }
