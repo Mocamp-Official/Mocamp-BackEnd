@@ -25,4 +25,8 @@ public class GoalEntity {
     @ManyToOne
     @JoinColumn(name = "joined_room_id", nullable = false)
     private JoinedRoomEntity joinedRoom;
+
+    public void updateIsCompleted(Boolean isCompleted) {
+        this.isCompleted = isCompleted;
+    }
 }
