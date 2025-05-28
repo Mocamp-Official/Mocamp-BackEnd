@@ -122,6 +122,7 @@ public class GoalService {
 
         // 해당 목표의 완료 여부 변경 및 저장
         goalEntity.updateIsCompleted(goalCompleteUpdateRequest.isCompleted());
+        // 리뷰 2
         goalRepository.save(goalEntity);
 
         // WebSocket 응답 전송
