@@ -23,5 +23,9 @@ public interface JoinedRoomRepository extends JpaRepository<JoinedRoomEntity, Lo
 
     List<JoinedRoomEntity> findByRoom_RoomIdAndIsParticipatingTrue(Long roomId);
 
+    boolean existsByRoom_RoomIdAndUser_UserIdAndIsAdminTrue(Long roomId, Long userId);
+
+
+
 
 }
