@@ -22,11 +22,11 @@ public class GoalEntity {
     @Column(name = "is_completed", nullable = false)
     private Boolean isCompleted = false;
 
-    @Builder.Default
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
-
     @ManyToOne
     @JoinColumn(name = "joined_room_id", nullable = false)
     private JoinedRoomEntity joinedRoom;
+
+    public void updateIsCompleted(Boolean isCompleted) {
+        this.isCompleted = isCompleted;
+    }
 }
