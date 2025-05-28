@@ -140,6 +140,7 @@ public class GoalService {
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+
         }
 
         // 해당하는 방이 활동중인지 확인
