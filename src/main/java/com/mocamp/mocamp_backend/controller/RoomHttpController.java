@@ -3,6 +3,7 @@ package com.mocamp.mocamp_backend.controller;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.room.RoomCreateRequest;
 import com.mocamp.mocamp_backend.dto.room.RoomEnterRequest;
+import com.mocamp.mocamp_backend.service.goal.GoalHttpService;
 import com.mocamp.mocamp_backend.service.room.RoomHttpService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class RoomHttpController {
     private final RoomHttpService roomHttpService;
+    private final GoalHttpService goalHttpService;
 
     @Operation(
             summary = "모캠프 방 생성 (방장 전용)",
@@ -86,5 +88,22 @@ public class RoomHttpController {
     public ResponseEntity<CommonResponse> getRoomData(
             @PathVariable Long roomId) {
         return roomHttpService.getRoomData(roomId);
+    }
+
+    @Operation(
+            summary = "모캠프 방 유저 목표 조회",
+            parameters = {
+                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
+                    @Parameter(name = "roomId", description = "데이터를 조회하고자 하는 방 ID", required = true)
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "유저별 목표 목록 조회 성공"),
+                    @ApiResponse(responseCode = "404", description = "존재하지 않는 방"),
+                    @ApiResponse(responseCode = "403", description = "비활성화된 방 또는 접근 권한 없음")
+            }
+    )
+    @GetMapping("/goal/{roomId}")
+    public ResponseEntity<CommonResponse> getGoals(@PathVariable Long roomId) {
+        return goalHttpService.getGoals(roomId);
     }
 }
