@@ -36,7 +36,7 @@ public class GoalSocketService {
     private final GoalRepository goalRepository;
 
     /**
-     * 목표 생성하는 메서드
+     * 목표 생성 및 삭제하는 메서드
      * @param roomId room ID
      * @return 목표 Response
      */
