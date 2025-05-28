@@ -1,25 +1,21 @@
 package com.mocamp.mocamp_backend.controller;
 
-import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
-import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
+import com.mocamp.mocamp_backend.service.goal.GoalService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
 public class RoomSocketController {
-    private final SimpMessagingTemplate messagingTemplate;
     private final RoomSocketService roomSocketService;
-    private final GoalSocketService goalSocketService;
+    private final GoalService goalService;
 
     @MessageMapping("/video/{roomId}")
     public void streamVideo(@Header("Authorization") String token,
@@ -41,11 +37,12 @@ public class RoomSocketController {
 
     @MessageMapping("/data/goal/manage/{roomId}")
     public void manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
-        goalSocketService.manageGoal(goalListRequest, roomId);
+        goalService.manageGoal(goalListRequest, roomId);
     }
 
     @MessageMapping("/data/goal/complete/{roomId}")
     public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId) {
-        goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId);
+        goalService.pressGoal(goalCompleteUpdateRequest, roomId);
     }
+
 }
