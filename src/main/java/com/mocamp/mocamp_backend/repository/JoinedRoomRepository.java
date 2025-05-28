@@ -5,6 +5,7 @@ import com.mocamp.mocamp_backend.entity.RoomEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface JoinedRoomRepository extends JpaRepository<JoinedRoomEntity, Long> {
@@ -15,5 +16,12 @@ public interface JoinedRoomRepository extends JpaRepository<JoinedRoomEntity, Lo
     <S extends JoinedRoomEntity> S save(S entity);
 
     boolean existsByRoomAndUser(RoomEntity room, UserEntity user);
+
     Optional<JoinedRoomEntity> findByRoomAndUser(RoomEntity room, UserEntity user);
+
+    Optional<JoinedRoomEntity> findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(Long roomId, Long userId);
+
+    List<JoinedRoomEntity> findByRoom_RoomIdAndIsParticipatingTrue(Long roomId);
+
+
 }
