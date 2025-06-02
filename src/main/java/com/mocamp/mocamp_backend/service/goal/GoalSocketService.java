@@ -48,17 +48,20 @@ public class GoalSocketService {
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            return;
         }
 
         // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            return;
         }
 
         // 생성한 목표 엔티티 생성 및 저장
@@ -99,23 +102,27 @@ public class GoalSocketService {
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            return;
         }
 
         // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            return;
         }
 
         // 해당 목표가 존재하는지 확인
         GoalEntity goalEntity = goalRepository.findById(goalCompleteUpdateRequest.getGoalId()).orElse(null);
         if (goalEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, GOAL_NOT_FOUND_MESSAGE));
+            return;
         }
 
         // 해당 목표의 완료 여부 변경 및 저장

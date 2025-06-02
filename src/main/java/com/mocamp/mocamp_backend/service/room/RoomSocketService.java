@@ -38,16 +38,19 @@ public class RoomSocketService {
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
             messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
             messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            return;
         }
 
         // 해당하는 방에서 방장인지 확인
         if(!joinedRoomRepository.existsByRoom_RoomIdAndUser_UserIdAndIsAdminTrue(roomId, user.getUserId())) {
             messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(403, ROOM_NOT_ADMIN_MESSAGE));
+            return;
         }
 
         // 방의 공지사항 변경 및 저장
