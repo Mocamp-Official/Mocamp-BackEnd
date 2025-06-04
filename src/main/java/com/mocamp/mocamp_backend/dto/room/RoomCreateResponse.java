@@ -11,7 +11,7 @@ import java.time.LocalTime;
 @Builder
 @Getter
 @AllArgsConstructor
-public class RoomResponse {
+public class RoomCreateResponse {
     private Long roomId;
     private String roomName;
     private String roomSeq;
@@ -26,8 +26,8 @@ public class RoomResponse {
     private Boolean micTurnedOn;
     private Boolean camTurnedOn;
 
-    public static RoomResponse convertEntityToDTO(RoomEntity roomEntity, Boolean camTurnedOn, Boolean micTurnedOn) {
-        return RoomResponse.builder()
+    public static RoomCreateResponse convertEntityToDTO(RoomEntity roomEntity, Boolean camTurnedOn, Boolean micTurnedOn) {
+        return RoomCreateResponse.builder()
                 .roomId(roomEntity.getRoomId())
                 .roomName(roomEntity.getRoomName())
                 .roomSeq(roomEntity.getRoomSeq())
