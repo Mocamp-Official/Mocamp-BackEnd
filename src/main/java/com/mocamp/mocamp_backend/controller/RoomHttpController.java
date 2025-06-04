@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Tag(name = "Room Controller", description = "모캠프 작업 공간(방) 메타 데이터 저장을 위한 HTTP 엔드포인트")
@@ -28,9 +29,9 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "작업 공간 생성 성공") }
     )
     @PostMapping("/create")
-    public ResponseEntity<CommonResponse> createRoom(
-            @RequestBody RoomCreateRequest roomCreateRequest) {
-        return roomHttpService.createRoom(roomCreateRequest);
+    public ResponseEntity<CommonResponse> createRoom(@RequestPart("room") RoomCreateRequest roomCreateRequest,
+                                                     @RequestPart("image")MultipartFile imageFile) {
+        return roomHttpService.createRoom(roomCreateRequest, imageFile);
     }
 
     @Operation(
