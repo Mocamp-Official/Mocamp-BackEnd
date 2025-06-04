@@ -12,9 +12,7 @@ public class RoomCreateRequest {
     private Integer capacity;
     private String description;
     private String duration;
-    private String imagePath;
     private Boolean micAvailability;
-
     private Boolean micTurnedOn;
     private Boolean camTurnedOn;
 }

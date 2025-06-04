@@ -11,11 +11,14 @@ import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
 import com.mocamp.mocamp_backend.service.image.ImageType;
+import com.mocamp.mocamp_backend.service.s3.S3Uploader;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -35,7 +38,10 @@ public class RoomHttpService {
     private final ImageRepository imageRepository;
     private final JoinedRoomRepository joinedRoomRepository;
     private final UserDetailsServiceImpl userDetailsService;
+    private final S3Uploader s3Uploader;
 
+    @Value("${cloud.aws.s3.bucket}")
+    private String DirName;
     private static final String USER_NOT_FOUND_MESSAGE = "유저정보 조회에 실패했습니다";
     private static final String ROOM_CREATION_MESSAGE = "방 생성에 실패했습니다";
     private static final String IMAGE_SAVING_MESSAGE = "이미지 저장에 실패했습니다";
@@ -43,6 +49,7 @@ public class RoomHttpService {
     private static final String ROOM_NOT_FOUND_MESSAGE = "방 정보 조회에 실패했습니다";
     private static final String ROOM_NOT_EXISTING_MESSAGE = "현재 활동 중인 방이 아닙니다";
     private static final String ROOM_ALREADY_FULL_MESSAGE = "입장 가능한 인원이 초과되었습니다.";
+
 
     private String createRandomRoomSeq() {
         Random random = new Random();
@@ -64,11 +71,12 @@ public class RoomHttpService {
      * @return 생성된 방의 메타 정보 (Id 포함)
      */
     @Transactional
-    public ResponseEntity<CommonResponse> createRoom(RoomCreateRequest roomCreateRequest) {
+    public ResponseEntity<CommonResponse> createRoom(RoomCreateRequest roomCreateRequest, MultipartFile imageFile) {
         UserEntity userEntity;
         RoomEntity roomEntity;
         JoinedRoomEntity joinedRoomEntity;
         ImageEntity imageEntity;
+        String imagePath = null;
 
         try {
             userEntity = userDetailsService.getUserByContextHolder();
@@ -79,9 +87,10 @@ public class RoomHttpService {
         }
 
         try {
+            imagePath = s3Uploader.uploadImage(imageFile, DirName);
             imageEntity = ImageEntity.builder()
                     .type(ImageType.room)
-                    .path(roomCreateRequest.getImagePath())
+                    .path(imagePath)
                     .build();
             imageEntity = imageRepository.save(imageEntity);
         } catch (Exception e) {
