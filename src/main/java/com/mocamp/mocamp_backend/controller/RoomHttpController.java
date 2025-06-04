@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
-@Tag(name = "Room Controller", description = "모캠프 작업 공간(방) 메타 데이터 저장을 위한 HTTP 엔드포엔트")
+@Tag(name = "Room Controller", description = "모캠프 작업 공간(방) 메타 데이터 저장을 위한 HTTP 엔드포인트")
 @RestController
 @RequestMapping("/api/room")
 @RequiredArgsConstructor
@@ -52,29 +52,34 @@ public class RoomHttpController {
             summary = "모캠프 방 퇴장",
             parameters = {
                     @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
-                    @Parameter(name = "roomId", description = "퇴장하고자 하는 방 ID", required = true)
+                    @Parameter(name = "roomId", description = "퇴장하고자 하는 방 ID", required = true),
+                    @Parameter(name = "nextAdminId", description = "방장을 위임할 참가자의 ID", required = false)
             },
             responses = { @ApiResponse(responseCode = "200", description = "퇴장 성공") }
     )
     @PostMapping("/exit/{roomId}")
     public ResponseEntity<CommonResponse> exitRoom(
-            @PathVariable Long roomId) {
-        return roomHttpService.exitRoom(roomId, null);
+            @PathVariable Long roomId,
+            @RequestHeader Long nextAdminId) {
+        return roomHttpService.exitRoom(roomId, nextAdminId);
     }
 
-    @Operation(
-            summary = "모캠프 방 정보 수정",
-            parameters = {
-                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
-                    @Parameter(name = "roomId", description = "데이터를 수정하고자 하는 방 ID", required = true)
-            },
-            responses = { @ApiResponse(responseCode = "200", description = "데이터 수정 성공") }
-    )
-    @PostMapping("/modify/{roomId}")
-    public ResponseEntity<CommonResponse> modifyRoomData(
-            @PathVariable Long roomId) {
-        return roomHttpService.modifyRoomData(roomId, null);
-    }
+    // 방 수정 API 필요 시 개발 예정 (WF 상 수정 로직 불필요)
+//    @Operation(
+//            summary = "모캠프 방 정보 수정",
+//            parameters = {
+//                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
+//                    @Parameter(name = "roomId", description = "데이터를 수정하고자 하는 방 ID", required = true),
+//                    @Parameter(name = "data", description = "수정되어 적용될 최신 데이터", required = true)
+//            },
+//            responses = { @ApiResponse(responseCode = "200", description = "데이터 수정 성공") }
+//    )
+//    @PostMapping("/modify/{roomId}")
+//    public ResponseEntity<CommonResponse> modifyRoomData(
+//            @PathVariable Long roomId,
+//            @RequestBody Object data) {
+//        return roomHttpService.modifyRoomData(roomId, data);
+//    }
 
     @Operation(
             summary = "모캠프 방 정보 조회",
@@ -88,6 +93,19 @@ public class RoomHttpController {
     public ResponseEntity<CommonResponse> getRoomData(
             @PathVariable Long roomId) {
         return roomHttpService.getRoomData(roomId);
+    }
+
+    @Operation(
+            summary = "특정 모캠프 방에 속한 유저 정보 조회 (이름, 목표)",
+            parameters = {
+                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
+                    @Parameter(name = "roomId", description = "데이터를 조회하고자 하는 방 ID", required = true)
+            },
+            responses = { @ApiResponse(responseCode = "200", description = "데이터 조회 성공") }
+    )
+    @GetMapping("/participant/{roomId}")
+    public ResponseEntity<CommonResponse> getRoomParticipantData(@PathVariable Long roomId) {
+        return roomHttpService.getRoomParticipantData(roomId);
     }
 
     @Operation(

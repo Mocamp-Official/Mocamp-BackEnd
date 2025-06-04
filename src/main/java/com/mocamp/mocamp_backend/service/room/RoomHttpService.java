@@ -4,13 +4,8 @@ import com.mocamp.mocamp_backend.authentication.UserDetailsServiceImpl;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
-import com.mocamp.mocamp_backend.dto.room.RoomCreateRequest;
-import com.mocamp.mocamp_backend.dto.room.RoomEnterRequest;
-import com.mocamp.mocamp_backend.dto.room.RoomResponse;
-import com.mocamp.mocamp_backend.entity.ImageEntity;
-import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
-import com.mocamp.mocamp_backend.entity.RoomEntity;
-import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.dto.room.*;
+import com.mocamp.mocamp_backend.entity.*;
 import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
@@ -22,9 +17,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -45,7 +43,6 @@ public class RoomHttpService {
     private static final String ROOM_NOT_FOUND_MESSAGE = "방 정보 조회에 실패했습니다";
     private static final String ROOM_NOT_EXISTING_MESSAGE = "현재 활동 중인 방이 아닙니다";
     private static final String ROOM_ALREADY_FULL_MESSAGE = "입장 가능한 인원이 초과되었습니다.";
-    private static final String ROOM_ALREADY_MESSAGE = "";
 
     private String createRandomRoomSeq() {
         Random random = new Random();
@@ -127,7 +124,7 @@ public class RoomHttpService {
 
         }
 
-        RoomResponse roomResponse = RoomResponse.convertEntityToDTO(roomEntity, roomCreateRequest.getCamTurnedOn(), roomCreateRequest.getMicTurnedOn());
+        RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomCreateRequest.getCamTurnedOn(), roomCreateRequest.getMicTurnedOn());
         return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
     }
 
@@ -183,7 +180,7 @@ public class RoomHttpService {
                     .build();
             joinedRoomRepository.save(newJoinedRoomEntity);
 
-            RoomResponse roomResponse = RoomResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
+            RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
             return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
         } else {
             // 신규 입장
@@ -203,7 +200,7 @@ public class RoomHttpService {
             roomEntity.setRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
 
-            RoomResponse roomResponse = RoomResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
+            RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
             return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
         }
     }
@@ -216,11 +213,63 @@ public class RoomHttpService {
      */
     @Transactional
     public ResponseEntity<CommonResponse> exitRoom(Long roomId, Long nextAdminId) {
-        // roomId 확인
-        // 방장 탈퇴 시 반장 변경 로직 (차기 방장 id 먼저 받자)
-        // 마지막 남은 사람이 나가는 경우 status 변경 후 폐쇄 조치
+        UserEntity userEntity, newAdminEntity;
+        RoomEntity roomEntity;
+        JoinedRoomEntity currentAdminRoomEntity, newAdminRoomEntity;
 
-        return null;
+        // 유저 검증
+        try {
+            userEntity = userDetailsService.getUserByContextHolder();
+            newAdminEntity = userRepository.findUserByUserId(nextAdminId).orElseThrow();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        }
+
+        // roomId 검증
+        Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
+        if(optionalRoomEntity.isEmpty())
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        roomEntity = optionalRoomEntity.get();
+
+        // 마지막 참가자 퇴장 (모캠프 종료)
+        // status 변경, 사용시간 계산 후 폐쇄 조치 (isDeleted = true)
+        if(roomEntity.getRoomNum() <= 1) {
+            roomEntity.setStatus(false);
+            roomEntity.setEndedAt(LocalDateTime.now());
+            roomEntity.setIsDeleted(true);
+
+            Duration duration = Duration.between(roomEntity.getEndedAt(), roomEntity.getStartedAt());
+            roomEntity.setDuration(LocalTime.ofSecondOfDay(duration.getSeconds()));    // 종료시각 - 시작시각으로 설정
+
+            currentAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
+            currentAdminRoomEntity.setIsDeleted(true);
+            roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
+
+            joinedRoomRepository.save(currentAdminRoomEntity);
+            roomRepository.save(roomEntity);
+
+            return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공(모캠프 종료)"));
+        }
+
+        // 단순 퇴장 (다른 사용자는 남아있음)
+        currentAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
+        if(currentAdminRoomEntity.getIsAdmin()) {
+            currentAdminRoomEntity.setIsAdmin(false);
+        }
+
+        newAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, newAdminEntity).orElse(null);
+        newAdminRoomEntity.setIsAdmin(true);
+
+        roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
+
+        joinedRoomRepository.save(currentAdminRoomEntity);
+        joinedRoomRepository.save(newAdminRoomEntity);
+        roomRepository.save(roomEntity);
+
+        return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공"));
     }
 
     /**
@@ -233,7 +282,7 @@ public class RoomHttpService {
     public ResponseEntity<CommonResponse> modifyRoomData(Long roomId, Object data) {
         // roomId 확인
         // 유효한 방이면 인풋 바탕으로 정보 수정
-
+        // 추후 필요 시 개발 예정
         return null;
     }
 
@@ -242,11 +291,73 @@ public class RoomHttpService {
      * @param roomId 참여하고자 하는 방의 Id
      * @return 자신을 포함하여 현재 방에 속해 있는 멤버들의 데이터 전체
      */
-    @Transactional
     public ResponseEntity<CommonResponse> getRoomData(Long roomId) {
-        // 반환 데이터 : 자신을 포함한 멤버의 데이터
+        UserEntity userEntity;
+        RoomEntity roomEntity;
 
+        // 유저 검증
+        try {
+            userEntity = userDetailsService.getUserByContextHolder();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        }
 
-        return null;
+        // roomId 검증
+        Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
+        if(optionalRoomEntity.isEmpty())
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        roomEntity = optionalRoomEntity.get();
+
+        return ResponseEntity.ok(new SuccessResponse(200, RoomDataResponse.convertEntityToDTO(roomEntity)));
+    }
+
+    /**
+     * 방 참가자 정보 조회 메서드
+     * @param roomId 참여하고자 하는 방의 Id
+     * @return 자신을 포함하여 현재 방에 속해 있는 참가자들의 데이터
+     */
+    public ResponseEntity<CommonResponse> getRoomParticipantData(Long roomId) {
+        UserEntity userEntity;
+        RoomEntity roomEntity;
+        List<RoomParticipantResponse> roomParticipantResponseList = new ArrayList<>();
+
+        // 유저 검증
+        try {
+            userEntity = userDetailsService.getUserByContextHolder();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        }
+
+        // roomId 검증
+        Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
+        if(optionalRoomEntity.isEmpty())
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        roomEntity = optionalRoomEntity.get();
+
+        List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findAllByRoom(roomEntity);
+        for(JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
+            RoomParticipantResponse roomParticipantResponse = RoomParticipantResponse.builder()
+                    .userId(joinedRoom.getUser().getUserId())
+                    .userSeq(joinedRoom.getUser().getUserSeq())
+                    .username(joinedRoom.getUser().getUsername())
+                    .build();
+
+            List<String> goalContentList = new ArrayList<>();
+            List<GoalEntity> goalEntityList = joinedRoom.getGoals();
+            for(GoalEntity goal : goalEntityList) {
+                goalContentList.add(goal.getContent());
+            }
+
+            roomParticipantResponse.setGoalList(goalContentList);
+            roomParticipantResponseList.add(roomParticipantResponse);
+        }
+
+        return ResponseEntity.ok(new SuccessResponse(200, roomParticipantResponseList));
     }
 }
