@@ -63,4 +63,10 @@ public class RoomEntity {
     @OneToOne
     @JoinColumn(name = "image_id", nullable = true)
     private ImageEntity image;
+
+    public void updateNotice(String notice) {
+        this.notice = notice;
+    }
+
+
 }
