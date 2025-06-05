@@ -5,6 +5,9 @@ import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalResponse;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
+import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.RoomEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
@@ -37,19 +40,19 @@ public class RoomSocketService {
         // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
-            messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
             return;
         }
 
         // 해당하는 방에서 방장인지 확인
         if(!joinedRoomRepository.existsByRoom_RoomIdAndUser_UserIdAndIsAdminTrue(roomId, user.getUserId())) {
-            messagingTemplate.convertAndSend("/sub/data/notice/" + roomId, new ErrorResponse(403, ROOM_NOT_ADMIN_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ADMIN_MESSAGE)));
             return;
         }
 
@@ -58,7 +61,7 @@ public class RoomSocketService {
         roomRepository.save(roomEntity);
 
         // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/notice/" + roomId , new SuccessResponse(200, noticeUpdateRequest.getNotice()));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId , new NoticeUpdateResponse(WebsocketMessageType.NOTICE_UPDATED, noticeUpdateRequest.getNotice()));
 
     }
 }

@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SdpAnswerResponse {
-    private String sdpAnswer;
     private Long userId;
+    private String sdpAnswer;
 }
