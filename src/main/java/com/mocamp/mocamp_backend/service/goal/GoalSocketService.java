@@ -6,6 +6,8 @@ import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalResponse;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.GoalEntity;
 import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
 import com.mocamp.mocamp_backend.entity.RoomEntity;
@@ -47,20 +49,20 @@ public class GoalSocketService {
         // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
             return;
         }
 
         // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
             return;
         }
 
@@ -86,7 +88,7 @@ public class GoalSocketService {
                 .toList();
 
         // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new GoalListResponse(goalResponseList));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(),goalResponseList));
     }
 
     /**
@@ -101,27 +103,27 @@ public class GoalSocketService {
         // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
             return;
         }
 
         // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
             return;
         }
 
         // 해당 목표가 존재하는지 확인
         GoalEntity goalEntity = goalRepository.findById(goalCompleteUpdateRequest.getGoalId()).orElse(null);
         if (goalEntity == null) {
-            messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new ErrorResponse(404, GOAL_NOT_FOUND_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), GOAL_NOT_FOUND_MESSAGE)));
             return;
         }
 
@@ -130,6 +132,6 @@ public class GoalSocketService {
         goalRepository.save(goalEntity);
 
         // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/goal/" + roomId, new GoalResponse(goalEntity.getGoalId(), goalEntity.getContent(), goalEntity.getIsCompleted()));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalResponse(WebsocketMessageType.GOAL_COMPLETE_UPDATED, user.getUserId(), goalEntity.getGoalId(), goalEntity.getContent(), goalEntity.getIsCompleted()));
     }
 }

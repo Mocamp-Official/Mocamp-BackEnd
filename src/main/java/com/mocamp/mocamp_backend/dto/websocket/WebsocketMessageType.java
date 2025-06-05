@@ -1,0 +1,8 @@
+package com.mocamp.mocamp_backend.dto.websocket;
+
+
+public enum WebsocketMessageType {
+    GOAL_LIST_UPDATED,
+    GOAL_COMPLETE_UPDATED,
+    NOTICE_UPDATED,
+}

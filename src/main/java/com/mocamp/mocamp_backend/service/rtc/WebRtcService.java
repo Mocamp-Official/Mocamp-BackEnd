@@ -6,6 +6,7 @@ import com.mocamp.mocamp_backend.dto.rtc.IceCandidateDto;
 import com.mocamp.mocamp_backend.dto.rtc.SdpAnswerResponse;
 import com.mocamp.mocamp_backend.dto.rtc.SdpOfferRequest;
 import com.mocamp.mocamp_backend.dto.rtc.UserSession;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
 import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
 import com.mocamp.mocamp_backend.entity.RoomEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
@@ -66,14 +67,14 @@ public class WebRtcService {
         // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/rtc/offer/" + roomId, new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/rtc/offer/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
         // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
-            messagingTemplate.convertAndSend("/sub/rtc/offer/" + roomId, new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            messagingTemplate.convertAndSend("/sub/rtc/offer/" + roomId, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE));
             return;
         }
 
@@ -102,7 +103,7 @@ public class WebRtcService {
 
         // SDP Answer 클라이언트로 전송
         messagingTemplate.convertAndSend("/sub/rtc/offer/" + roomId,
-                new SdpAnswerResponse(sdpAnswer, user.getUserId()));
+                new SdpAnswerResponse(user.getUserId(), sdpAnswer));
     }
 
     /**
