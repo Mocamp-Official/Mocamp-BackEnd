@@ -23,7 +23,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
         System.out.println(accessor.getCommand());
-        
+
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
             String accessToken = accessor.getFirstNativeHeader("Authorization");
             log.info("[웹소캣 인터셉터 토큰 확인] 액세스 토큰: {}", accessToken);
@@ -34,6 +34,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 
             Authentication authentication = jwtProvider.getAuthentication(accessToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            accessor.setUser(authentication);
             log.info("✅ CONNECT 인증 성공, SecurityContext 설정 완료");
         }
 
