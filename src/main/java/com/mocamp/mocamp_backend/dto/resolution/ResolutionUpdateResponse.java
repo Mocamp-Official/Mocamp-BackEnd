@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class ResolutionUpdateResponse {
 
     private WebsocketMessageType type;
+    private Long userId;
     private String resolution;
 }
