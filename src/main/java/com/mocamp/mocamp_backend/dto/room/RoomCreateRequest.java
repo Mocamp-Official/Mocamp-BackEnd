@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 public class RoomCreateRequest {
     private String roomName;
     private Integer capacity;
-    private String description;
     private String duration;
     private Boolean micAvailability;
     private Boolean micTurnedOn;
