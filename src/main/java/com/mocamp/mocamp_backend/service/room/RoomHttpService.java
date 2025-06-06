@@ -5,7 +5,6 @@ import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalResponse;
-import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.room.*;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.*;
