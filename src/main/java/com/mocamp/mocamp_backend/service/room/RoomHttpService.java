@@ -4,7 +4,10 @@ import com.mocamp.mocamp_backend.authentication.UserDetailsServiceImpl;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
+import com.mocamp.mocamp_backend.dto.goal.GoalResponse;
+import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.room.*;
+import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.*;
 import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
@@ -18,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +45,7 @@ public class RoomHttpService {
     private final JoinedRoomRepository joinedRoomRepository;
     private final UserDetailsServiceImpl userDetailsService;
     private final S3Uploader s3Uploader;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${cloud.aws.s3.bucket}")
     private String DirName;
@@ -206,8 +211,26 @@ public class RoomHttpService {
                     .isDeleted(false)
                     .build();
             joinedRoomRepository.save(newJoinedRoomEntity);
+
+            // 방에 참가 인원에 +1 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
+
+
+            List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+            List<GoalResponse> goalResponses = new ArrayList<>();
+            for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
+                for (GoalEntity goal : joinedRoom.getGoals()) {
+                    goalResponses.add(GoalResponse.builder()
+                            .goalId(goal.getGoalId())
+                            .content(goal.getContent())
+                            .isCompleted(goal.getIsCompleted())
+                            .build());
+                }
+            }
+
+            // 새로운 인원 들어온 새 유저 정보를 채널로 전송
+            messagingTemplate.convertAndSend("/sub/data/" + roomId , new RoomEnterUserUpdateResponse(WebsocketMessageType.USER_ENTER_UPDATED, userEntity.getUserId(), userEntity.getUsername(), goalResponses));
 
             log.info("[재입장 완료] userId: {}, roomId: {}, 현재 인원 수: {}", userEntity.getUserId(), roomId, roomEntity.getRoomNum());
             return ResponseEntity.ok(new SuccessResponse(200, "재입장이 완료되었습니다"));
@@ -228,8 +251,25 @@ public class RoomHttpService {
                     .isParticipating(true)
                     .build();
             joinedRoomRepository.save(joinedRoomEntity);
+
+            // 방에 참가 인원에 +1 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
+
+            List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+            List<GoalResponse> goalResponses = new ArrayList<>();
+            for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
+                for (GoalEntity goal : joinedRoom.getGoals()) {
+                    goalResponses.add(GoalResponse.builder()
+                            .goalId(goal.getGoalId())
+                            .content(goal.getContent())
+                            .isCompleted(goal.getIsCompleted())
+                            .build());
+                }
+            }
+
+            // 새로운 인원 들어온 새 유저 정보를 채널로 전송
+            messagingTemplate.convertAndSend("/sub/data/" + roomId , new RoomEnterUserUpdateResponse(WebsocketMessageType.USER_ENTER_UPDATED, userEntity.getUserId(), userEntity.getUsername(), goalResponses));
 
             log.info("[신규 입장 완료] userId: {}, roomId: {}, 현재 인원 수: {}", userEntity.getUserId(), roomId, roomEntity.getRoomNum());
             return ResponseEntity.ok(new SuccessResponse(200, "입장이 완료되었습니다"));
@@ -395,30 +435,31 @@ public class RoomHttpService {
         }
 
         // 현재 방에 참여 중인 유저 목록 조회
-        List<JoinedRoomEntity> joinedRoomEntityList =
-                joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+        List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
         log.info("[방 참가자 수] roomId: {}, 참여 인원 수: {}", roomId, joinedRoomEntityList.size());
 
         List<RoomParticipantResponse> roomParticipantResponseList = new ArrayList<>();
 
         for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
+            List<GoalResponse> goalResponses = new ArrayList<>();
+            for (GoalEntity goal : joinedRoom.getGoals()) {
+                goalResponses.add(GoalResponse.builder()
+                        .goalId(goal.getGoalId())
+                        .content(goal.getContent())
+                        .isCompleted(goal.getIsCompleted())
+                        .build());
+            }
+
             RoomParticipantResponse roomParticipantResponse = RoomParticipantResponse.builder()
                     .userId(joinedRoom.getUser().getUserId())
                     .userSeq(joinedRoom.getUser().getUserSeq())
                     .username(joinedRoom.getUser().getUsername())
+                    .goals(goalResponses)
                     .build();
 
-            List<String> goalContentList = new ArrayList<>();
-            List<GoalEntity> goalEntityList = joinedRoom.getGoals();
-            for (GoalEntity goal : goalEntityList) {
-                goalContentList.add(goal.getContent());
-            }
-
-            roomParticipantResponse.setGoalList(goalContentList);
             roomParticipantResponseList.add(roomParticipantResponse);
         }
 
-        log.info("[참가자 응답 완료] 응답 인원 수: {}", roomParticipantResponseList.size());
         return ResponseEntity.ok(new SuccessResponse(200, roomParticipantResponseList));
     }
 }
