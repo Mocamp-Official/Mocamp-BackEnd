@@ -50,7 +50,9 @@ public class RoomHttpService {
     private static final String JOINED_ROOM_CREATION_MESSAGE = "방 입장정보 저장에 실패했습니다";
     private static final String ROOM_NOT_FOUND_MESSAGE = "방 정보 조회에 실패했습니다";
     private static final String ROOM_NOT_EXISTING_MESSAGE = "현재 활동 중인 방이 아닙니다";
-    private static final String ROOM_ALREADY_FULL_MESSAGE = "입장 가능한 인원이 초과되었습니다.";
+    private static final String ROOM_ALREADY_FULL_MESSAGE = "입장 가능한 인원이 초과되었습니다";
+    private static final String ROOM_NOT_ACTIVE_MESSAGE = "활동 중인 방이 아닙니다";
+    private static final String USER_NOT_IN_ROOM_MESSAGE = "해당 방에 참여 중인 유저가 아닙니다";
 
 
     private String createRandomRoomSeq() {
@@ -107,15 +109,19 @@ public class RoomHttpService {
         }
 
         try {
+            LocalDateTime startedAt = LocalDateTime.now();
+            LocalTime duration = LocalTime.parse(roomCreateRequest.getDuration(), DateTimeFormatter.ofPattern("HH:mm"));
+            LocalDateTime endedAt = startedAt.plusHours(duration.getHour()).plusMinutes(duration.getMinute());
+
             roomEntity = RoomEntity.builder()
                     .roomName(roomCreateRequest.getRoomName())
                     .roomSeq(createRandomRoomSeq())
                     .capacity(roomCreateRequest.getCapacity())
                     .roomNum(1)
                     .status(true)
-                    .startedAt(LocalDateTime.now())
-                    .endedAt(LocalDateTime.now())
-                    .duration(LocalTime.parse(roomCreateRequest.getDuration(), DateTimeFormatter.ofPattern("HH:mm")))
+                    .startedAt(startedAt)
+                    .endedAt(endedAt)
+                    .duration(duration)
                     .image(imageEntity)
                     .build();
             roomEntity = roomRepository.save(roomEntity);   // Id 포함한 객체로 재할당
@@ -141,8 +147,7 @@ public class RoomHttpService {
 
         }
 
-        RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomCreateRequest.getCamTurnedOn(), roomCreateRequest.getMicTurnedOn());
-        return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
+        return ResponseEntity.ok(new SuccessResponse(200, "방 생성이 완료되었습니다."));
     }
 
     /**
@@ -197,8 +202,11 @@ public class RoomHttpService {
                     .build();
             joinedRoomRepository.save(newJoinedRoomEntity);
 
-            RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
-            return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
+            // room에 인원 1명 추가 반영
+            roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
+            roomRepository.save(roomEntity);
+
+            return ResponseEntity.ok(new SuccessResponse(200, "재입장이 완료되었습니다"));
         } else {
             // 신규 입장
             // 최대 인원 수 확인해서 여유가 있는 경우 입장
@@ -214,11 +222,11 @@ public class RoomHttpService {
                     .build();
             joinedRoomRepository.save(joinedRoomEntity);
 
-            roomEntity.setRoomNum(roomEntity.getRoomNum() + 1);
+            // room에 인원 1명 추가 반영
+            roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
 
-            RoomCreateResponse roomResponse = RoomCreateResponse.convertEntityToDTO(roomEntity, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
-            return ResponseEntity.ok(new SuccessResponse(200, roomResponse));
+            return ResponseEntity.ok(new SuccessResponse(200, "입장이 완료되었습니다"));
         }
     }
 
@@ -304,7 +312,7 @@ public class RoomHttpService {
     }
 
     /**
-     * 방 입장 조회 메서드
+     * 방 데이터 조회 메서드
      * @param roomId 참여하고자 하는 방의 Id
      * @return 자신을 포함하여 현재 방에 속해 있는 멤버들의 데이터 전체
      */
@@ -337,27 +345,27 @@ public class RoomHttpService {
      * @return 자신을 포함하여 현재 방에 속해 있는 참가자들의 데이터
      */
     public ResponseEntity<CommonResponse> getRoomParticipantData(Long roomId) {
-        UserEntity userEntity;
-        RoomEntity roomEntity;
+        UserEntity user = userDetailsService.getUserByContextHolder();
         List<RoomParticipantResponse> roomParticipantResponseList = new ArrayList<>();
 
-        // 유저 검증
-        try {
-            userEntity = userDetailsService.getUserByContextHolder();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
         }
 
-        // roomId 검증
-        Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
-        if(optionalRoomEntity.isEmpty())
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
-        roomEntity = optionalRoomEntity.get();
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+        }
 
-        List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findAllByRoom(roomEntity);
+        // 해당하는 방에 소속하는 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+        }
+
+        List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
         for(JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
             RoomParticipantResponse roomParticipantResponse = RoomParticipantResponse.builder()
                     .userId(joinedRoom.getUser().getUserId())
