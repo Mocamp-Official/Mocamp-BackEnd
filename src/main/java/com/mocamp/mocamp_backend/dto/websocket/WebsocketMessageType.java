@@ -5,4 +5,5 @@ public enum WebsocketMessageType {
     GOAL_LIST_UPDATED,
     GOAL_COMPLETE_UPDATED,
     NOTICE_UPDATED,
+    USER_ENTER_UPDATED
 }
