@@ -115,6 +115,7 @@ public class GoalSocketService {
      * @param roomId room ID
      * @return 목표 완료 여부 Response
      */
+    @Transactional
     public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId, Principal principal) {
         String email = principal.getName();
         UserEntity user = userRepository.findUserByEmail(email).orElse(null);
@@ -154,9 +155,9 @@ public class GoalSocketService {
         }
 
         goalEntity.updateIsCompleted(goalCompleteUpdateRequest.isCompleted());
-        goalRepository.save(goalEntity);
-        log.info("[목표 완료 상태 변경 성공] goalId: {}, isCompleted: {}", goalEntity.getGoalId(), goalEntity.getIsCompleted());
+        GoalEntity updatedGoalEntity = goalRepository.save(goalEntity);
+        log.info("[목표 완료 상태 변경 성공] goalId: {}, isCompleted: {}", updatedGoalEntity.getGoalId(), updatedGoalEntity.getIsCompleted());
 
-        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalResponse(WebsocketMessageType.GOAL_COMPLETE_UPDATED, user.getUserId(), goalEntity.getGoalId(), goalEntity.getContent(), goalEntity.getIsCompleted()));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalResponse(WebsocketMessageType.GOAL_COMPLETE_UPDATED, user.getUserId(), updatedGoalEntity.getGoalId(), updatedGoalEntity.getContent(), updatedGoalEntity.getIsCompleted()));
     }
 }
