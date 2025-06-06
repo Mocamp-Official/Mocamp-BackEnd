@@ -57,9 +57,7 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "퇴장 성공") }
     )
     @PostMapping("/exit/{roomId}")
-    public ResponseEntity<CommonResponse> exitRoom(
-            @PathVariable Long roomId,
-            @RequestHeader Long nextAdminId) {
+    public ResponseEntity<CommonResponse> exitRoom(@PathVariable Long roomId, @RequestHeader Long nextAdminId) {
         return roomHttpService.exitRoom(roomId, nextAdminId);
     }
 

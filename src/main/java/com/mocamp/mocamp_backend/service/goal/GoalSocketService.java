@@ -17,13 +17,17 @@ import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GoalSocketService {
 
     private static final String ROOM_NOT_FOUND_MESSAGE = "방을 찾을 수 없습니다";
@@ -43,30 +47,33 @@ public class GoalSocketService {
      * @return 목표 Response
      */
     @Transactional
-    public void manageGoal(GoalListRequest goalListRequest, Long roomId) {
+    public void manageGoal(GoalListRequest goalListRequest, Long roomId, Principal principal) {
+        String name = principal.getName();
+        System.out.println(name);
         UserEntity user = userDetailsService.getUserByContextHolder();
+        log.info("[목표 관리 요청] userId: {}, roomId: {}", user.getUserId(), roomId);
 
-        // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
+            log.warn("[목표 관리 실패] 존재하지 않는 방 - roomId: {}", roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
-        // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
+            log.warn("[목표 관리 실패] 비활성화된 방 - roomId: {}", roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
             return;
         }
 
-        // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
+            log.warn("[목표 관리 실패] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
             return;
         }
 
-        // 생성한 목표 엔티티 생성 및 저장
+        // 목표 생성
         List<GoalEntity> goalEntities = goalListRequest.getCreateGoals().stream()
                 .map(goal -> GoalEntity.builder()
                         .content(goal.getContent())
@@ -75,20 +82,22 @@ public class GoalSocketService {
                         .build())
                 .toList();
         goalRepository.saveAll(goalEntities);
+        log.info("[목표 생성 완료] 생성된 목표 수: {}", goalEntities.size());
 
-        // 삭제할 목표 엔티티 삭제
+        // 목표 삭제
         for (Long deleteGoal : goalListRequest.getDeleteGoals()) {
             goalRepository.deleteById(deleteGoal);
+            log.info("[목표 삭제] 삭제된 goalId: {}", deleteGoal);
         }
 
-        // 웹소캣 응답으로 보낼 GoalResponse 생성
+        // 전체 목표 조회 후 응답
         List<GoalEntity> updateGoalList = goalRepository.findAll();
         List<GoalResponse> goalResponseList = updateGoalList.stream()
                 .map(goal -> new GoalResponse(goal.getGoalId(), goal.getContent(), goal.getIsCompleted()))
                 .toList();
 
-        // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(),goalResponseList));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList));
+        log.info("[목표 리스트 응답 전송 완료] userId: {}, roomId: {}, 총 목표 수: {}", user.getUserId(), roomId, goalResponseList.size());
     }
 
     /**
@@ -99,39 +108,40 @@ public class GoalSocketService {
      */
     public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId) {
         UserEntity user = userDetailsService.getUserByContextHolder();
+        log.info("[목표 완료 토글 요청] userId: {}, roomId: {}, goalId: {}, 완료 여부: {}",
+                user.getUserId(), roomId, goalCompleteUpdateRequest.getGoalId(), goalCompleteUpdateRequest.isCompleted());
 
-        // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
+            log.warn("[목표 토글 실패] 존재하지 않는 방 - roomId: {}", roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
             return;
         }
 
-        // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
+            log.warn("[목표 토글 실패] 비활성화된 방 - roomId: {}", roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
             return;
         }
 
-        // 해당하는 방에 소속하는 유저인지 확인
         JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
         if (joinedRoomEntity == null) {
+            log.warn("[목표 토글 실패] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
             return;
         }
 
-        // 해당 목표가 존재하는지 확인
         GoalEntity goalEntity = goalRepository.findById(goalCompleteUpdateRequest.getGoalId()).orElse(null);
         if (goalEntity == null) {
+            log.warn("[목표 토글 실패] 존재하지 않는 목표 - goalId: {}", goalCompleteUpdateRequest.getGoalId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), GOAL_NOT_FOUND_MESSAGE)));
             return;
         }
 
-        // 해당 목표의 완료 여부 변경 및 저장
         goalEntity.updateIsCompleted(goalCompleteUpdateRequest.isCompleted());
         goalRepository.save(goalEntity);
+        log.info("[목표 완료 상태 변경 성공] goalId: {}, isCompleted: {}", goalEntity.getGoalId(), goalEntity.getIsCompleted());
 
-        // WebSocket 응답 전송
         messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalResponse(WebsocketMessageType.GOAL_COMPLETE_UPDATED, user.getUserId(), goalEntity.getGoalId(), goalEntity.getContent(), goalEntity.getIsCompleted()));
     }
 }

@@ -151,7 +151,7 @@ public class RoomHttpService {
 
         }
 
-        return ResponseEntity.ok(new SuccessResponse(200, "방 생성이 완료되었습니다."));
+        return ResponseEntity.ok(new SuccessResponse(200, roomEntity.getRoomId()));
     }
 
     /**
