@@ -39,13 +39,13 @@ public class RoomSocketController {
     }
 
     @MessageMapping("/data/goal/complete/{roomId}")
-    public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId) {
-        goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId);
+    public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId, principal);
     }
 
     @MessageMapping("/data/notice/{roomId}")
-    public void UpdateNotice(@Payload NoticeUpdateRequest noticeUpdateRequest, @DestinationVariable("roomId") Long roomId) {
-        roomSocketService.UpdateNotice(noticeUpdateRequest, roomId);
+    public void UpdateNotice(@Payload NoticeUpdateRequest noticeUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.UpdateNotice(noticeUpdateRequest, roomId, principal);
     }
 
 }
