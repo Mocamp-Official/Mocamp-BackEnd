@@ -15,11 +15,13 @@ import com.mocamp.mocamp_backend.entity.UserEntity;
 import com.mocamp.mocamp_backend.repository.GoalRepository;
 import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
+import com.mocamp.mocamp_backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.parameters.P;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
@@ -34,12 +36,15 @@ public class GoalSocketService {
     private static final String GOAL_NOT_FOUND_MESSAGE = "목표를 찾을 수 없습니다";
     private static final String ROOM_NOT_ACTIVE_MESSAGE = "활동 중인 방이 아닙니다";
     private static final String USER_NOT_IN_ROOM_MESSAGE = "해당 방에 참여 중인 유저가 아닙니다";
+    private static final String USER_NOT_FOUND_MESSAGE = "유저정보 조회에 실패했습니다";
+
 
     private final SimpMessagingTemplate messagingTemplate;
     private final UserDetailsServiceImpl userDetailsService;
     private final RoomRepository roomRepository;
     private final JoinedRoomRepository joinedRoomRepository;
     private final GoalRepository goalRepository;
+    private final UserRepository userRepository;
 
     /**
      * 목표 생성 및 삭제하는 메서드
@@ -48,9 +53,13 @@ public class GoalSocketService {
      */
     @Transactional
     public void manageGoal(GoalListRequest goalListRequest, Long roomId, Principal principal) {
-        String name = principal.getName();
-        System.out.println(name);
-        UserEntity user = userDetailsService.getUserByContextHolder();
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
         log.info("[목표 관리 요청] userId: {}, roomId: {}", user.getUserId(), roomId);
 
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
@@ -106,8 +115,14 @@ public class GoalSocketService {
      * @param roomId room ID
      * @return 목표 완료 여부 Response
      */
-    public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId) {
-        UserEntity user = userDetailsService.getUserByContextHolder();
+    public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
         log.info("[목표 완료 토글 요청] userId: {}, roomId: {}, goalId: {}, 완료 여부: {}",
                 user.getUserId(), roomId, goalCompleteUpdateRequest.getGoalId(), goalCompleteUpdateRequest.isCompleted());
 
