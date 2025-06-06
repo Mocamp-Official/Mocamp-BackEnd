@@ -2,6 +2,7 @@ package com.mocamp.mocamp_backend.configuration;
 
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class StompChannelInterceptor implements ChannelInterceptor {
     private final JwtProvider jwtProvider;
 
@@ -21,6 +23,7 @@ public class StompChannelInterceptor implements ChannelInterceptor {
 
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
             String accessToken = accessor.getFirstNativeHeader("Authorization");
+            log.info("[웹소캣 인터셉터 토큰 확인] 액세스 토큰: {}", accessToken);
             if(accessToken == null || !jwtProvider.validateToken(accessToken)) {
                 throw new UsernameNotFoundException("Invalid token");
             }
