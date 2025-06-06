@@ -3,6 +3,7 @@ package com.mocamp.mocamp_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -31,7 +32,8 @@ public class JoinedRoomEntity {
 
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GoalEntity> goals;
+    @Builder.Default
+    private List<GoalEntity> goals = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
