@@ -14,6 +14,7 @@ import com.mocamp.mocamp_backend.service.image.ImageType;
 import com.mocamp.mocamp_backend.service.s3.S3Uploader;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,7 @@ import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RoomHttpService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
@@ -72,6 +74,7 @@ public class RoomHttpService {
      */
     @Transactional
     public ResponseEntity<CommonResponse> createRoom(RoomCreateRequest roomCreateRequest, MultipartFile imageFile) {
+        log.info("[방 생성 시작] 요청 roomCreateRequest: {}, 이미지파일: {}", roomCreateRequest, imageFile != null ? imageFile.getOriginalFilename() : "null");
         UserEntity userEntity;
         RoomEntity roomEntity;
         JoinedRoomEntity joinedRoomEntity;
@@ -80,21 +83,25 @@ public class RoomHttpService {
 
         try {
             userEntity = userDetailsService.getUserByContextHolder();
+            log.info("[유저 조회 성공] 유저 ID: {}, 닉네임: {}", userEntity.getUserId(), userEntity.getUsername());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[유저 조회 실패] {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
         }
 
         try {
             imagePath = s3Uploader.uploadImage(imageFile, DirName);
+            log.info("[이미지 업로드 성공] 경로: {}", imagePath);
+
             imageEntity = ImageEntity.builder()
                     .type(ImageType.room)
                     .path(imagePath)
                     .build();
             imageEntity = imageRepository.save(imageEntity);
+            log.info("[이미지 저장 성공] 이미지 ID: {}", imageEntity.getImageId());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[이미지 저장 실패] {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + IMAGE_SAVING_MESSAGE));
         }
@@ -112,8 +119,9 @@ public class RoomHttpService {
                     .image(imageEntity)
                     .build();
             roomEntity = roomRepository.save(roomEntity);   // Id 포함한 객체로 재할당
+            log.info("[방 저장 성공] 방 ID: {}, 방 이름: {}", roomEntity.getRoomId(), roomEntity.getRoomName());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[방 저장 실패] {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_CREATION_MESSAGE));
         }
