@@ -22,10 +22,12 @@ public class StompChannelInterceptor implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
-
+        System.out.println(accessor.getCommand());
+        
         if(StompCommand.CONNECT.equals(accessor.getCommand())) {
             String accessToken = accessor.getFirstNativeHeader("Authorization");
             log.info("[웹소캣 인터셉터 토큰 확인] 액세스 토큰: {}", accessToken);
+
             if(accessToken == null || !jwtProvider.validateToken(accessToken)) {
                 throw new UsernameNotFoundException("Invalid token");
             }
