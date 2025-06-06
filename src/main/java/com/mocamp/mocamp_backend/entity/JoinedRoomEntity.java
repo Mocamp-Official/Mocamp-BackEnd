@@ -30,6 +30,10 @@ public class JoinedRoomEntity {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Builder.Default
+    @Column(name = "resolution", nullable = false)
+    private String resolution = "오늘의 다짐을 작성해주세요";
+
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -42,4 +46,6 @@ public class JoinedRoomEntity {
     @ManyToOne
     @JoinColumn(name = "room_id", nullable = false)
     private RoomEntity room;
+
+    public void updateResolution(String resolution) {this.resolution = resolution;}
 }

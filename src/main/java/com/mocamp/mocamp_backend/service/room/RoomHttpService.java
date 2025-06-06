@@ -453,6 +453,7 @@ public class RoomHttpService {
                     .userId(joinedRoom.getUser().getUserId())
                     .userSeq(joinedRoom.getUser().getUserSeq())
                     .username(joinedRoom.getUser().getUsername())
+                    .resolution(joinedRoom.getResolution())
                     .goals(goalResponses)
                     .build();
 

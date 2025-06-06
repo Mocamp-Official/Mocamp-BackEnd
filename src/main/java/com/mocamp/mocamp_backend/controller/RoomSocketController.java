@@ -3,6 +3,7 @@ package com.mocamp.mocamp_backend.controller;
 import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
+import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.rtc.IceCandidateDto;
 import com.mocamp.mocamp_backend.dto.rtc.SdpOfferRequest;
 import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
@@ -46,6 +47,11 @@ public class RoomSocketController {
     @MessageMapping("/data/notice/{roomId}")
     public void UpdateNotice(@Payload NoticeUpdateRequest noticeUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
         roomSocketService.UpdateNotice(noticeUpdateRequest, roomId, principal);
+    }
+
+    @MessageMapping("/data/resolution/{roomId}")
+    public void UpdateResolution(@Payload ResolutionUpdateRequest resolutionUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.UpdateResolution(resolutionUpdateRequest, roomId, principal);
     }
 
 }
