@@ -163,34 +163,39 @@ public class RoomHttpService {
         RoomEntity roomEntity;
         JoinedRoomEntity joinedRoomEntity;
 
+        log.info("[입장 요청] roomId: {}, 요청 캠: {}, 마이크: {}", roomId, roomEnterRequest.getCamTurnedOn(), roomEnterRequest.getMicTurnedOn());
+
         // 유저 검증
         try {
             userEntity = userDetailsService.getUserByContextHolder();
+            log.info("[유저 확인 완료] userId: {}", userEntity.getUserId());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[유저 확인 실패] {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
         }
 
-        // roomSeq 유효성 검증
+        // roomId 유효성 검증
         Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
-        if(optionalRoomEntity.isEmpty())
+        if (optionalRoomEntity.isEmpty()) {
+            log.error("[방 조회 실패] roomId: {} 존재하지 않음", roomId);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        }
         roomEntity = optionalRoomEntity.get();
+        log.info("[방 조회 성공] roomId: {}, roomName: {}", roomEntity.getRoomId(), roomEntity.getRoomName());
 
-        // room 입장 허용 여부 검증
-        if(roomEntity.getIsDeleted() || !roomEntity.getStatus()) {
+        // room 입장 가능 여부 확인
+        if (roomEntity.getIsDeleted() || !roomEntity.getStatus()) {
+            log.warn("[입장 불가] 삭제되었거나 비활성화된 방입니다. roomId: {}", roomId);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_EXISTING_MESSAGE));
-
         }
 
-        // 이미 입장한 방이 있는 경우 (재입장)
-        // JoinedRoom에서 실제 해당 방에 접속되어 있는 사용자인지 확인
-        // 맞으면 해당 방 찾아서 그대로 Room 반환
-        if(joinedRoomRepository.existsByRoomAndUser(roomEntity, userEntity)) {
-            // 재입장
+        // 재입장 여부 확인
+        if (joinedRoomRepository.existsByRoomAndUser(roomEntity, userEntity)) {
+            // 재입장 처리
+            log.info("[재입장 요청] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             joinedRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
             JoinedRoomEntity newJoinedRoomEntity = JoinedRoomEntity.builder()
                     .joinedRoomId(joinedRoomEntity.getJoinedRoomId())
@@ -201,19 +206,21 @@ public class RoomHttpService {
                     .isDeleted(false)
                     .build();
             joinedRoomRepository.save(newJoinedRoomEntity);
-
-            // room에 인원 1명 추가 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
 
+            log.info("[재입장 완료] userId: {}, roomId: {}, 현재 인원 수: {}", userEntity.getUserId(), roomId, roomEntity.getRoomNum());
             return ResponseEntity.ok(new SuccessResponse(200, "재입장이 완료되었습니다"));
         } else {
             // 신규 입장
-            // 최대 인원 수 확인해서 여유가 있는 경우 입장
-            if(roomEntity.getRoomNum() >= roomEntity.getCapacity())  // Full
+            if (roomEntity.getRoomNum() >= roomEntity.getCapacity()) {
+                log.warn("[입장 실패] 방 정원 초과. roomId: {}, 현재 인원: {}, 최대 인원: {}",
+                        roomId, roomEntity.getRoomNum(), roomEntity.getCapacity());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_ALREADY_FULL_MESSAGE));
+                        .body(new ErrorResponse(403, "에러 메시지: " + ROOM_ALREADY_FULL_MESSAGE));
+            }
 
+            log.info("[신규 입장 요청] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             joinedRoomEntity = JoinedRoomEntity.builder()
                     .user(userEntity)
                     .room(roomEntity)
@@ -221,11 +228,10 @@ public class RoomHttpService {
                     .isParticipating(true)
                     .build();
             joinedRoomRepository.save(joinedRoomEntity);
-
-            // room에 인원 1명 추가 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
 
+            log.info("[신규 입장 완료] userId: {}, roomId: {}, 현재 인원 수: {}", userEntity.getUserId(), roomId, roomEntity.getRoomNum());
             return ResponseEntity.ok(new SuccessResponse(200, "입장이 완료되었습니다"));
         }
     }
@@ -320,21 +326,27 @@ public class RoomHttpService {
         UserEntity userEntity;
         RoomEntity roomEntity;
 
+        log.info("[방 데이터 조회 요청] roomId: {}", roomId);
+
         // 유저 검증
         try {
             userEntity = userDetailsService.getUserByContextHolder();
+            log.info("[유저 인증 완료] userId: {}", userEntity.getUserId());
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[유저 인증 실패] {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
         }
 
         // roomId 검증
         Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
-        if(optionalRoomEntity.isEmpty())
+        if (optionalRoomEntity.isEmpty()) {
+            log.warn("[방 조회 실패] 존재하지 않는 roomId: {}", roomId);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        }
         roomEntity = optionalRoomEntity.get();
+        log.info("[방 조회 성공] roomId: {}, roomName: {}", roomEntity.getRoomId(), roomEntity.getRoomName());
 
         return ResponseEntity.ok(new SuccessResponse(200, RoomDataResponse.convertEntityToDTO(roomEntity)));
     }
@@ -345,28 +357,51 @@ public class RoomHttpService {
      * @return 자신을 포함하여 현재 방에 속해 있는 참가자들의 데이터
      */
     public ResponseEntity<CommonResponse> getRoomParticipantData(Long roomId) {
-        UserEntity user = userDetailsService.getUserByContextHolder();
-        List<RoomParticipantResponse> roomParticipantResponseList = new ArrayList<>();
+        log.info("[방 참가자 데이터 조회 요청] roomId: {}", roomId);
+
+        UserEntity user;
+        try {
+            user = userDetailsService.getUserByContextHolder();
+            log.info("[유저 인증 완료] userId: {}", user.getUserId());
+        } catch (Exception e) {
+            log.error("[유저 인증 실패] {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        }
 
         // roomId에 해당하는 방이 존재하는지 확인
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
+            log.warn("[방 조회 실패] 존재하지 않는 roomId: {}", roomId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(404, ROOM_NOT_FOUND_MESSAGE));
         }
 
         // 해당하는 방이 활동중인지 확인
         if (!roomEntity.getStatus()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
+            log.warn("[비활성 방] roomId: {}", roomId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse(403, ROOM_NOT_ACTIVE_MESSAGE));
         }
 
-        // 해당하는 방에 소속하는 유저인지 확인
-        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        // 해당 방에 현재 유저가 참여 중인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository
+                .findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId())
+                .orElse(null);
         if (joinedRoomEntity == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
+            log.warn("[참여 중 아님] userId: {} 는 roomId: {} 에 참여하지 않음", user.getUserId(), roomId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(403, USER_NOT_IN_ROOM_MESSAGE));
         }
 
-        List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
-        for(JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
+        // 현재 방에 참여 중인 유저 목록 조회
+        List<JoinedRoomEntity> joinedRoomEntityList =
+                joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+        log.info("[방 참가자 수] roomId: {}, 참여 인원 수: {}", roomId, joinedRoomEntityList.size());
+
+        List<RoomParticipantResponse> roomParticipantResponseList = new ArrayList<>();
+
+        for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
             RoomParticipantResponse roomParticipantResponse = RoomParticipantResponse.builder()
                     .userId(joinedRoom.getUser().getUserId())
                     .userSeq(joinedRoom.getUser().getUserSeq())
@@ -375,7 +410,7 @@ public class RoomHttpService {
 
             List<String> goalContentList = new ArrayList<>();
             List<GoalEntity> goalEntityList = joinedRoom.getGoals();
-            for(GoalEntity goal : goalEntityList) {
+            for (GoalEntity goal : goalEntityList) {
                 goalContentList.add(goal.getContent());
             }
 
@@ -383,6 +418,7 @@ public class RoomHttpService {
             roomParticipantResponseList.add(roomParticipantResponse);
         }
 
+        log.info("[참가자 응답 완료] 응답 인원 수: {}", roomParticipantResponseList.size());
         return ResponseEntity.ok(new SuccessResponse(200, roomParticipantResponseList));
     }
 }
