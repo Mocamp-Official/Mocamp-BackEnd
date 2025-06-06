@@ -33,7 +33,6 @@ public class StompChannelInterceptor implements ChannelInterceptor {
             }
 
             Authentication authentication = jwtProvider.getAuthentication(accessToken);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
             accessor.setUser(authentication);
             log.info("✅ CONNECT 인증 성공, SecurityContext 설정 완료");
         }
