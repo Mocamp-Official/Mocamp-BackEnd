@@ -132,7 +132,7 @@ public class RoomSocketService {
 
         log.info("[다짐 변경 완료] userId: {}, roomId: {}, resolution: {}" ,user.getUserId(), roomId, resolutionUpdateRequest.getResolution());
         // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/" + roomId , new ResolutionUpdateResponse(WebsocketMessageType.RESOLUTION_UPDATED, resolutionUpdateRequest.getResolution()));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId , new ResolutionUpdateResponse(WebsocketMessageType.RESOLUTION_UPDATED, user.getUserId(), resolutionUpdateRequest.getResolution()));
 
     }
 }
