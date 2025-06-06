@@ -19,8 +19,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.util.List;
 
 @Service
@@ -45,7 +47,9 @@ public class GoalSocketService {
      * @return 목표 Response
      */
     @Transactional
-    public void manageGoal(GoalListRequest goalListRequest, Long roomId) {
+    public void manageGoal(GoalListRequest goalListRequest, Long roomId, Principal principal) {
+        String name = principal.getName();
+        System.out.println(name);
         UserEntity user = userDetailsService.getUserByContextHolder();
         log.info("[목표 관리 요청] userId: {}, roomId: {}", user.getUserId(), roomId);
 

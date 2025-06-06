@@ -14,6 +14,8 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
+import java.security.Principal;
+
 @Controller
 @RequiredArgsConstructor
 public class RoomSocketController {
@@ -32,8 +34,8 @@ public class RoomSocketController {
     }
 
     @MessageMapping("/data/goal/manage/{roomId}")
-    public void manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId) {
-        goalSocketService.manageGoal(goalListRequest, roomId);
+    public void manageGoal(@Payload GoalListRequest goalListRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        goalSocketService.manageGoal(goalListRequest, roomId, principal);
     }
 
     @MessageMapping("/data/goal/complete/{roomId}")
