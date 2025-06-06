@@ -68,5 +68,10 @@ public class RoomEntity {
         this.notice = notice;
     }
 
+    public void updateRoomNum(Integer roomNum) {
+        this.roomNum = roomNum;
+    }
+
+
 
 }

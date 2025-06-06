@@ -6,12 +6,14 @@ import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GoalResponse {
     private WebsocketMessageType type;
