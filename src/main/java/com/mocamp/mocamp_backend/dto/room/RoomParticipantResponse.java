@@ -16,5 +16,6 @@ public class RoomParticipantResponse {
     private Long userId;
     private String userSeq;
     private String username;
+    private String resolution;
     private List<GoalResponse> goals;
 }
