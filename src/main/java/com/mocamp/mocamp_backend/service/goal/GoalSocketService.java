@@ -100,7 +100,7 @@ public class GoalSocketService {
         }
 
         // 전체 목표 조회 후 응답
-        List<GoalEntity> updateGoalList = goalRepository.findAll();
+        List<GoalEntity> updateGoalList = goalRepository.findAllByJoinedRoom(joinedRoomEntity);
         List<GoalResponse> goalResponseList = updateGoalList.stream()
                 .map(goal -> new GoalResponse(goal.getGoalId(), goal.getContent(), goal.getIsCompleted()))
                 .toList();
