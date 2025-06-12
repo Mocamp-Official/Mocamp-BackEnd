@@ -10,7 +10,7 @@ public class KurentoConfig {
 
     @Bean
     public KurentoClient kurentoClient() {
-        return KurentoClient.create("ws://localhost:8888/kurento");
+        return KurentoClient.create("ws://kurento:8888/kurento");
     }
 
     @Bean(name = "kurentoUserRegistry")
