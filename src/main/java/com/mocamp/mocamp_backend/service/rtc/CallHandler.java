@@ -3,9 +3,9 @@ package com.mocamp.mocamp_backend.service.rtc;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.IceCandidate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -16,12 +16,17 @@ import java.io.IOException;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class CallHandler extends TextWebSocketHandler {
 
     private static final Gson gson = new GsonBuilder().create();
     private final RoomManager roomManager;
     private final UserRegistry registry;
+
+    public CallHandler(RoomManager roomManager,
+                       @Qualifier("kurentoUserRegistry") UserRegistry registry) {
+        this.roomManager = roomManager;
+        this.registry = registry;
+    }
 
     @Override
     public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
