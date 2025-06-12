@@ -25,7 +25,7 @@ public class KurentoInterceptor implements HandshakeInterceptor {
 
         if (request instanceof ServletServerHttpRequest servletRequest) {
             HttpServletRequest httpServletRequest = servletRequest.getServletRequest();
-            String token = httpServletRequest.getHeader("Authorization");
+            String token = httpServletRequest.getParameter("token");
 
             if (token != null) {
                 try {
