@@ -13,10 +13,11 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class KurentoWebsocketConfig implements WebSocketConfigurer {
 
     private final CallHandler callHandler;
+    private final KurentoInterceptor kurentoInterceptor;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(callHandler, "/groupcall").setAllowedOrigins("*");
+        registry.addHandler(callHandler, "/groupcall").addInterceptors(kurentoInterceptor).setAllowedOrigins("*");
     }
 
 }
