@@ -47,6 +47,8 @@ public class SecurityConfig {
                             auth.requestMatchers("/api-docs/**").permitAll();
                             auth.requestMatchers("/ws/**").permitAll();
                             auth.requestMatchers("/ws").permitAll();
+                            auth.requestMatchers("/groupcall").permitAll();
+                            auth.requestMatchers("/groupcall/**").permitAll();
                             auth.requestMatchers("/pub/**").permitAll();
                             auth.requestMatchers("/sub/**").permitAll();
                             auth.anyRequest().authenticated();
