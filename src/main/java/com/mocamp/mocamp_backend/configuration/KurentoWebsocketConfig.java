@@ -18,7 +18,7 @@ public class KurentoWebsocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
 //        registry.addHandler(callHandler, "/groupcall").addInterceptors(kurentoInterceptor).setAllowedOrigins("*");
-        registry.addHandler(callHandler, "/groupcall").setAllowedOrigins("*");
+        registry.addHandler(callHandler, "/groupcall").setAllowedOriginPatterns("*");
     }
 
 }
