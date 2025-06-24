@@ -3,6 +3,7 @@ package com.mocamp.mocamp_backend.configuration;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @RequiredArgsConstructor
 @Component
+@Slf4j
 public class KurentoInterceptor implements HandshakeInterceptor {
 
     private final JwtProvider jwtProvider;
@@ -26,6 +28,8 @@ public class KurentoInterceptor implements HandshakeInterceptor {
         if (request instanceof ServletServerHttpRequest servletRequest) {
             HttpServletRequest httpServletRequest = servletRequest.getServletRequest();
             String token = httpServletRequest.getParameter("token");
+            log.info(token);
+
 
             if (token != null) {
                 try {
