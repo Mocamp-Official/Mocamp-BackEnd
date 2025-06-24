@@ -3,9 +3,10 @@ package com.mocamp.mocamp_backend.service.rtc;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.IceCandidate;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -15,28 +16,29 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 
 @Component
-@Slf4j
 public class CallHandler extends TextWebSocketHandler {
 
-    private static final Gson gson = new GsonBuilder().create();
-    private final RoomManager roomManager;
-    private final UserRegistry registry;
+    private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
 
-    public CallHandler(RoomManager roomManager,
-                       @Qualifier("kurentoUserRegistry") UserRegistry registry) {
-        this.roomManager = roomManager;
-        this.registry = registry;
-    }
+    private static final Gson gson = new GsonBuilder().create();
+
+    @Autowired
+    private RoomManager roomManager;
+
+    @Autowired
+    private UserRegistry registry;
 
     @Override
     public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        log.info("📩 수신 메시지: {}", message.getPayload());
         final JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
+
         final UserSession user = registry.getBySession(session);
 
         if (user != null) {
-            log.debug("기존 유저로부터의 메시지 '{}': {}", user.getName(), jsonMessage);
+            log.debug("Incoming message from user '{}': {}", user.getName(), jsonMessage);
         } else {
-            log.debug("새로운 유저로부터의 메시지: {}", jsonMessage);
+            log.debug("Incoming message from new user: {}", jsonMessage);
         }
 
         switch (jsonMessage.get("id").getAsString()) {
@@ -68,6 +70,7 @@ public class CallHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        log.info("❌ 연결 종료: session id = {}, status = {}", session.getId(), status);
         UserSession user = registry.removeBySession(session);
         roomManager.getRoom(user.getRoomName()).leave(user);
     }
@@ -88,5 +91,10 @@ public class CallHandler extends TextWebSocketHandler {
         if (room.getParticipants().isEmpty()) {
             roomManager.removeRoom(room);
         }
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        log.info("✅ WebSocket 연결 수립: session id = {}", session.getId());
     }
 }
