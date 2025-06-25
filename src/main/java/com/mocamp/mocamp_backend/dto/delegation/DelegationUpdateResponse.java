@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DelegationUpdateResponse {
     private WebsocketMessageType type;
-    private Long previousAdminId;
-    private Long newAdminId;
+    private String previousAdminUsername;
+    private String newAdminUsername;
 }

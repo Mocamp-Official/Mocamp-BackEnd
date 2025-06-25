@@ -191,11 +191,14 @@ public class RoomSocketService {
         delegatedJoinedRoomEntity.updateIsAdmin(true);
         log.info("[새로운 방장으로 변경] 새로운 방장 - userId: {}", delegationUpdateRequest.getNewAdminId());
 
+        // 위임을 전달받은 유저 이름 추출
+        String delegatedUsername = delegatedJoinedRoomEntity.getUser().getUsername();
+
         // 위임을 전달할 유저 ID는 방장 권한 해제
         joinedRoomEntity.updateIsAdmin(false);
         log.info("[기존 방장은 참여자로 변경] 방장 -> 참여자 - userId: {}", user.getUserId());
 
         // WebSocket 응답 전송
-        messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, user.getUserId(), delegationUpdateRequest.getNewAdminId()));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, user.getUsername(), delegatedUsername));
     }
 }
