@@ -1,6 +1,8 @@
 package com.mocamp.mocamp_backend.service.room;
 
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
+import com.mocamp.mocamp_backend.dto.delegation.DelegationUpdateRequest;
+import com.mocamp.mocamp_backend.dto.delegation.DelegationUpdateResponse;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
@@ -31,6 +33,7 @@ public class RoomSocketService {
     private static final String ROOM_NOT_ADMIN_MESSAGE = "방장이 아닙니다";
     private static final String USER_NOT_FOUND_MESSAGE = "유저정보 조회에 실패했습니다";
     private static final String USER_NOT_IN_ROOM_MESSAGE = "해당 방에 참여 중인 유저가 아닙니다";
+    private static final String USER_NOT_HOST_MESSAGE = "해당 방의 방장이 아닙니다";
 
     private final RoomRepository roomRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -134,5 +137,65 @@ public class RoomSocketService {
         // WebSocket 응답 전송
         messagingTemplate.convertAndSend("/sub/data/" + roomId , new ResolutionUpdateResponse(WebsocketMessageType.RESOLUTION_UPDATED, user.getUserId(), resolutionUpdateRequest.getResolution()));
 
+    }
+
+    /**
+     * 모캠프 방 방장 위임하는 메서드
+     * @param delegationUpdateRequest 방장을 위임할 유저 ID
+     * @param roomId 현재 접속하고 있는 방 ID
+     */
+    @Transactional
+    public void UpdateDelegation(DelegationUpdateRequest delegationUpdateRequest, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        log.info("[방장 위임 요청] userId: {} --> userId: {}으로 방장 위임" ,user.getUserId(), delegationUpdateRequest.getUserId());
+
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            log.warn("[방 조회 실패] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            log.warn("[비활성화된 방 접근] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
+            return;
+        }
+
+        // 해당 방에 참여중인 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            log.warn("[방에 참여중인 유저인지 확인] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
+            return;
+        }
+
+        // 해당 방의 위임 요청한 유저가 방장인지 확인
+        if(!joinedRoomEntity.getIsAdmin()) {
+            log.warn("[방의 방장인 유저인지 확인] 방의 방장이 아닌 유저 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_HOST_MESSAGE)));
+            return;
+        }
+
+        // 위임을 받을 유저 ID에 방장 권한 부여
+        JoinedRoomEntity delegatedJoinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, delegationUpdateRequest.getUserId()).orElse(null);
+        delegatedJoinedRoomEntity.updateIsAdmin(true);
+        log.info("[새로운 방장으로 변경] 새로운 방장 - userId: {}", delegationUpdateRequest.getUserId());
+
+        // 위임을 전달할 유저 ID는 방장 권한 해제
+        joinedRoomEntity.updateIsAdmin(false);
+        log.info("[기존 방장은 참여자로 변경] 방장 -> 참여자 - userId: {}", user.getUserId());
+
+        // WebSocket 응답 전송
+        messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, user.getUserId(), delegationUpdateRequest.getUserId()));
     }
 }
