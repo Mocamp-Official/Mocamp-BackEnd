@@ -1,5 +1,6 @@
 package com.mocamp.mocamp_backend.controller;
 
+import com.mocamp.mocamp_backend.dto.delegation.DelegationUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
@@ -52,6 +53,11 @@ public class RoomSocketController {
     @MessageMapping("/data/resolution/{roomId}")
     public void UpdateResolution(@Payload ResolutionUpdateRequest resolutionUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
         roomSocketService.UpdateResolution(resolutionUpdateRequest, roomId, principal);
+    }
+
+    @MessageMapping("/data/delegation/{roomId}")
+    public void UpdateDelegation(@Payload DelegationUpdateRequest delegationUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.UpdateDelegation(delegationUpdateRequest, roomId, principal);
     }
 
 }
