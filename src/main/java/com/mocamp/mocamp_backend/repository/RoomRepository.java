@@ -15,6 +15,8 @@ public interface RoomRepository extends JpaRepository<RoomEntity, Long> {
 
     Optional<RoomEntity> findByRoomSeq(String roomSeq);
 
+    List<RoomEntity> findAllByStatusTrue();
+
     @Override
     <S extends RoomEntity> S save(S entity);
 }
