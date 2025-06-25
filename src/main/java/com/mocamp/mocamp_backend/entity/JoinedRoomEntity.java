@@ -48,4 +48,5 @@ public class JoinedRoomEntity {
     private RoomEntity room;
 
     public void updateResolution(String resolution) {this.resolution = resolution;}
+    public void updateIsAdmin(Boolean isAdmin) {this.isAdmin = isAdmin;}
 }
