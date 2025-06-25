@@ -8,5 +8,6 @@ public enum WebsocketMessageType {
     RESOLUTION_UPDATED,
     USER_ENTER_UPDATED,
     ADMIN_UPDATED,
+    ROOM_END_ALERT,
 
 }
