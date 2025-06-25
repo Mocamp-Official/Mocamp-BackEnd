@@ -4,6 +4,7 @@ import com.mocamp.mocamp_backend.authentication.UserDetailsServiceImpl;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
+import com.mocamp.mocamp_backend.dto.delegation.DelegationUpdateResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalResponse;
 import com.mocamp.mocamp_backend.dto.room.*;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -39,7 +41,6 @@ import java.util.Random;
 @Slf4j
 public class RoomHttpService {
     private final RoomRepository roomRepository;
-    private final UserRepository userRepository;
     private final ImageRepository imageRepository;
     private final JoinedRoomRepository joinedRoomRepository;
     private final UserDetailsServiceImpl userDetailsService;
@@ -276,70 +277,106 @@ public class RoomHttpService {
     }
 
     /**
-     * 방장 변경 메서드
+     * 방 퇴장 메서드
      * @param roomId 참여하고자 하는 방의 Id
-     * @param nextAdminId 방장 변경 시 다음으로 지정될 방장의 Id
      * @return 성공 메시지
      */
     @Transactional
-    public ResponseEntity<CommonResponse> exitRoom(Long roomId, Long nextAdminId) {
-        UserEntity userEntity, newAdminEntity;
+    public ResponseEntity<CommonResponse> exitRoom(Long roomId) {
+        UserEntity userEntity;
         RoomEntity roomEntity;
-        JoinedRoomEntity currentAdminRoomEntity, newAdminRoomEntity;
+        JoinedRoomEntity currentRoomEntity;
+        String delegationName;
 
         // 유저 검증
         try {
             userEntity = userDetailsService.getUserByContextHolder();
-            newAdminEntity = userRepository.findUserByUserId(nextAdminId).orElseThrow();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.error("[유저 확인 실패] {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
         }
 
         // roomId 검증
         Optional<RoomEntity> optionalRoomEntity = roomRepository.findById(roomId);
-        if(optionalRoomEntity.isEmpty())
+        if(optionalRoomEntity.isEmpty()) {
+            log.error("[방 조회 실패] roomId: {} 존재하지 않음", roomId);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        }
         roomEntity = optionalRoomEntity.get();
 
-        // 마지막 참가자 퇴장 (모캠프 종료)
+        // 마지막 참가자 퇴장 (모캠프 방 종료)
         // status 변경, 사용시간 계산 후 폐쇄 조치 (isDeleted = true)
+        // 마지막 참가자가 퇴장하면, 해당 방에 들어왔던 참가자의 모든 joinedRoomEntity의 isDeleted를 true로 바꿔줘야 함
         if(roomEntity.getRoomNum() <= 1) {
+            log.info("[마지막 참가자 퇴장 감지] roomId: {}, userId: {}", roomId, userEntity.getUserId());
             roomEntity.setStatus(false);
             roomEntity.setEndedAt(LocalDateTime.now());
             roomEntity.setIsDeleted(true);
 
+            // 사용 시간 계산
             Duration duration = Duration.between(roomEntity.getEndedAt(), roomEntity.getStartedAt());
             roomEntity.setDuration(LocalTime.ofSecondOfDay(duration.getSeconds()));    // 종료시각 - 시작시각으로 설정
+            log.info("[방 종료 처리 완료] roomId: {}, 사용 시간: {}", roomId, roomEntity.getDuration());
 
-            currentAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
-            currentAdminRoomEntity.setIsDeleted(true);
-            roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
-
-            joinedRoomRepository.save(currentAdminRoomEntity);
+            // 해당 방에 연결된 모든 JoinedRoomEntity 가져오기
+            List<JoinedRoomEntity> joinedRoomList = joinedRoomRepository.findAllByRoom(roomEntity);
+            for (JoinedRoomEntity joinedRoom : joinedRoomList) {
+                joinedRoom.setIsDeleted(true);
+                joinedRoom.setIsParticipating(false);
+            }
+            roomEntity.setRoomNum(0);
+            joinedRoomRepository.saveAll(joinedRoomList);
             roomRepository.save(roomEntity);
 
+            log.info("[모든 참가자 퇴장 처리 완료] roomId: {}", roomId);
             return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공(모캠프 종료)"));
+        } else {
+            // 단순 퇴장 (다른 사용자는 남아있는 경우)
+            // 해당 로직에서 방장인지 참여자인지 분기 진행
+            // 방장일 경우, 그냥 나가면 랜덤으로 방장 위임 진행
+            currentRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
+
+            // 방장인 경우
+            if (currentRoomEntity.getIsAdmin()) {
+                log.info("[방장 퇴장 시도] roomId: {}, userId: {}", roomId, userEntity.getUserId());
+
+                currentRoomEntity.setIsAdmin(false);
+                currentRoomEntity.setIsParticipating(false);
+
+                // 참여 중이고, 나가는 사람 제외한 유저 목록
+                List<JoinedRoomEntity> remaining = joinedRoomRepository
+                        .findByRoom_RoomIdAndIsParticipatingTrue(roomEntity.getRoomId()).stream()
+                        .filter(j -> !j.getUser().getUserId().equals(userEntity.getUserId()))
+                        .collect(Collectors.toList());
+
+                // 남은 사람이 있다면 랜덤으로 방장 위임
+                if (!remaining.isEmpty()) {
+                    JoinedRoomEntity newAdmin = remaining.get(new Random().nextInt(remaining.size()));
+                    newAdmin.setIsAdmin(true);
+                    delegationName = newAdmin.getUser().getUsername();
+                    joinedRoomRepository.save(newAdmin);
+
+                    log.info("[방장 위임 완료] from userId: {} to userId: {}", userEntity.getUserId(), newAdmin.getUser().getUserId());
+                    messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, userEntity.getUsername(), delegationName));
+                }
+
+                roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
+                roomRepository.save(roomEntity);
+
+                log.info("[방장 퇴장 완료] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
+            } else {
+                // 일반 참가자
+                currentRoomEntity.setIsParticipating(false);
+                roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
+                roomRepository.save(roomEntity);
+
+                log.info("[일반 참가자 퇴장 완료] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
+            }
+            joinedRoomRepository.save(currentRoomEntity);
+            return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공"));
         }
-
-        // 단순 퇴장 (다른 사용자는 남아있음)
-        currentAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
-        if(currentAdminRoomEntity.getIsAdmin()) {
-            currentAdminRoomEntity.setIsAdmin(false);
-        }
-
-        newAdminRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, newAdminEntity).orElse(null);
-        newAdminRoomEntity.setIsAdmin(true);
-
-        roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
-
-        joinedRoomRepository.save(currentAdminRoomEntity);
-        joinedRoomRepository.save(newAdminRoomEntity);
-        roomRepository.save(roomEntity);
-
-        return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공"));
     }
 
     /**

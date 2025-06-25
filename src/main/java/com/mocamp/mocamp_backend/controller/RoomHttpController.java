@@ -51,14 +51,13 @@ public class RoomHttpController {
             summary = "모캠프 방 퇴장",
             parameters = {
                     @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
-                    @Parameter(name = "roomId", description = "퇴장하고자 하는 방 ID", required = true),
-                    @Parameter(name = "nextAdminId", description = "방장을 위임할 참가자의 ID", required = false)
+                    @Parameter(name = "roomId", description = "퇴장하고자 하는 방 ID", required = true)
             },
             responses = { @ApiResponse(responseCode = "200", description = "퇴장 성공") }
     )
     @PostMapping("/exit/{roomId}")
-    public ResponseEntity<CommonResponse> exitRoom(@PathVariable Long roomId, @RequestHeader Long nextAdminId) {
-        return roomHttpService.exitRoom(roomId, nextAdminId);
+    public ResponseEntity<CommonResponse> exitRoom(@PathVariable Long roomId) {
+        return roomHttpService.exitRoom(roomId);
     }
 
     // 방 수정 API 필요 시 개발 예정 (WF 상 수정 로직 불필요)
