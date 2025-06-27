@@ -32,7 +32,7 @@ public class JoinedRoomEntity {
 
     @Builder.Default
     @Column(name = "resolution", nullable = false)
-    private String resolution = "오늘의 다짐을 작성해주세요";
+    private String resolution = "";
 
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)
