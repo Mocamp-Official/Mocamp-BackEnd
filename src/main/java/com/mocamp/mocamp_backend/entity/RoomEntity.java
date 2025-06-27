@@ -46,7 +46,7 @@ public class RoomEntity {
 
     @Builder.Default
     @Column(nullable = false)
-    private String notice = "공지사항을 입력해주세요";
+    private String notice = "";
 
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
