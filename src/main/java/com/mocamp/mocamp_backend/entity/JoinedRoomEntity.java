@@ -38,6 +38,18 @@ public class JoinedRoomEntity {
     @Column(name = "resolution", nullable = false)
     private String resolution = "";
 
+    @Builder.Default
+    @Column(name = "work_status", nullable = false)
+    private Boolean workStatus = true;
+
+    @Builder.Default
+    @Column(name = "mic_status", nullable = false)
+    private Boolean micStatus = true;
+
+    @Builder.Default
+    @Column(name = "cam_status", nullable = false)
+    private Boolean camStatus = true;
+
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
