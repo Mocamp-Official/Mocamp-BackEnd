@@ -7,6 +7,7 @@ import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.rtc.IceCandidateDto;
 import com.mocamp.mocamp_backend.dto.rtc.SdpOfferRequest;
+import com.mocamp.mocamp_backend.dto.secret.SecretUpdateRequest;
 import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
 import com.mocamp.mocamp_backend.service.rtc.WebRtcService;
@@ -44,7 +45,6 @@ public class RoomSocketController {
 
     @MessageMapping("/data/goal/complete/{roomId}")
     public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
-        log.info("isCompleted 값: {}", goalCompleteUpdateRequest.getIsCompleted());
         goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId, principal);
     }
 

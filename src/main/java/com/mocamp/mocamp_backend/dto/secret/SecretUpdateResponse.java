@@ -1,19 +1,15 @@
-package com.mocamp.mocamp_backend.dto.goal;
+package com.mocamp.mocamp_backend.dto.secret;
 
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GoalListResponse {
+public class SecretUpdateResponse {
     private WebsocketMessageType type;
     private Long userId;
-    private List<GoalResponse> goals;
     private Boolean isSecret;
-
 }

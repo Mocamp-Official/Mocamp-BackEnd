@@ -10,5 +10,6 @@ public enum WebsocketMessageType {
     USER_EXIT_UPDATED,
     ADMIN_UPDATED,
     ROOM_END_ALERT,
+    SECRET_UPDATED,
 
 }

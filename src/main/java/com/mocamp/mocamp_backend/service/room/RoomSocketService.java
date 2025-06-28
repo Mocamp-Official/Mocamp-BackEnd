@@ -7,6 +7,8 @@ import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateResponse;
+import com.mocamp.mocamp_backend.dto.secret.SecretUpdateRequest;
+import com.mocamp.mocamp_backend.dto.secret.SecretUpdateResponse;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
