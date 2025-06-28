@@ -1,6 +1,5 @@
 package com.mocamp.mocamp_backend.service.goal;
 
-import com.mocamp.mocamp_backend.authentication.UserDetailsServiceImpl;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.goal.GoalCompleteUpdateRequest;
 import com.mocamp.mocamp_backend.dto.goal.GoalListRequest;
@@ -20,8 +19,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.parameters.P;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
@@ -37,10 +34,10 @@ public class GoalSocketService {
     private static final String ROOM_NOT_ACTIVE_MESSAGE = "활동 중인 방이 아닙니다";
     private static final String USER_NOT_IN_ROOM_MESSAGE = "해당 방에 참여 중인 유저가 아닙니다";
     private static final String USER_NOT_FOUND_MESSAGE = "유저정보 조회에 실패했습니다";
+    private static final String ANOTHER_USER_GOAL_TOGGLE_MESSAGE = "다른 유저의 목표를 토글했습니다";
 
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final UserDetailsServiceImpl userDetailsService;
     private final RoomRepository roomRepository;
     private final JoinedRoomRepository joinedRoomRepository;
     private final GoalRepository goalRepository;
@@ -156,6 +153,11 @@ public class GoalSocketService {
             log.warn("[목표 토글 실패] 존재하지 않는 목표 - goalId: {}", goalCompleteUpdateRequest.getGoalId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), GOAL_NOT_FOUND_MESSAGE)));
             return;
+        }
+
+        if(!goalEntity.getJoinedRoom().getUser().getUserId().equals(user.getUserId())) {
+            log.warn("[다른 사용자 목표 토글] - goalId: {}", goalCompleteUpdateRequest.getGoalId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ANOTHER_USER_GOAL_TOGGLE_MESSAGE)));
         }
 
         goalEntity.updateIsCompleted(goalCompleteUpdateRequest.getIsCompleted());
