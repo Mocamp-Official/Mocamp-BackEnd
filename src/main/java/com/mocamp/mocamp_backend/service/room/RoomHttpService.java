@@ -331,6 +331,7 @@ public class RoomHttpService {
             roomRepository.save(roomEntity);
 
             log.info("[모든 참가자 퇴장 처리 완료] roomId: {}", roomId);
+
             return ResponseEntity.ok(new SuccessResponse(200, "퇴장 성공(모캠프 종료)"));
         } else {
             // 단순 퇴장 (다른 사용자는 남아있는 경우)
@@ -365,12 +366,18 @@ public class RoomHttpService {
                 roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
                 roomRepository.save(roomEntity);
 
+                // 나가는 유저 정보를 채널로 전송
+                messagingTemplate.convertAndSend("/sub/data/" + roomId , new RoomExitUserUpdateResponse(WebsocketMessageType.USER_EXIT_UPDATED, userEntity.getUserId()));
+
                 log.info("[방장 퇴장 완료] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             } else {
                 // 일반 참가자
                 currentRoomEntity.setIsParticipating(false);
                 roomEntity.setRoomNum(roomEntity.getRoomNum() - 1);
                 roomRepository.save(roomEntity);
+
+                // 나가는 유저 정보를 채널로 전송
+                messagingTemplate.convertAndSend("/sub/data/" + roomId , new RoomExitUserUpdateResponse(WebsocketMessageType.USER_EXIT_UPDATED, userEntity.getUserId()));
 
                 log.info("[일반 참가자 퇴장 완료] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             }
@@ -491,6 +498,7 @@ public class RoomHttpService {
                     .userSeq(joinedRoom.getUser().getUserSeq())
                     .username(joinedRoom.getUser().getUsername())
                     .resolution(joinedRoom.getResolution())
+                    .is_my_goal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
                     .goals(goalResponses)
                     .build();
 

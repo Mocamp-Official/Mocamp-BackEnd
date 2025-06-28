@@ -17,5 +17,6 @@ public class RoomParticipantResponse {
     private String userSeq;
     private String username;
     private String resolution;
+    private Boolean is_my_goal;
     private List<GoalResponse> goals;
 }
