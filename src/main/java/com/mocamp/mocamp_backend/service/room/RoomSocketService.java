@@ -7,6 +7,8 @@ import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateResponse;
+import com.mocamp.mocamp_backend.dto.secret.SecretUpdateRequest;
+import com.mocamp.mocamp_backend.dto.secret.SecretUpdateResponse;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
@@ -200,5 +202,53 @@ public class RoomSocketService {
 
         // WebSocket 응답 전송
         messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, user.getUsername(), delegatedUsername));
+    }
+
+    /**
+     * 모캠프 개인 목표 시크릿 모드로 전환하는 메서드
+     * @param secretUpdateRequest 시크릿 여부
+     * @param roomId 현재 접속하고 있는 방 ID
+     */
+    @Transactional
+    public void UpdateSecret(SecretUpdateRequest secretUpdateRequest, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        log.info("[개인 목표 시크릿 요청] userId: {}" ,user.getUserId());
+
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            log.warn("[방 조회 실패] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            log.warn("[비활성화된 방 접근] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
+            return;
+        }
+
+        // 해당 방에 참여중인 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            log.warn("[방에 참여중인 유저인지 확인] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
+            return;
+        }
+
+        // DB에 시크릿 정보 저장
+        joinedRoomEntity.updateIsSecret(secretUpdateRequest.getIsSecret());
+        JoinedRoomEntity updatedJoinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
+
+        // WebSocket 응답 전송
+        messagingTemplate.convertAndSend("/sub/data/" + roomId , new SecretUpdateResponse(WebsocketMessageType.SECRET_UPDATED, user.getUserId(), updatedJoinedRoomEntity.getIsSecret()));
     }
 }
