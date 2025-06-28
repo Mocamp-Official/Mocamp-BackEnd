@@ -17,6 +17,8 @@ public interface JoinedRoomRepository extends JpaRepository<JoinedRoomEntity, Lo
 
     boolean existsByRoomAndUser(RoomEntity room, UserEntity user);
 
+    List<JoinedRoomEntity> findAllByUser(UserEntity user);
+
     Optional<JoinedRoomEntity> findByRoomAndUser(RoomEntity room, UserEntity user);
 
     List<JoinedRoomEntity> findAllByRoom(RoomEntity room);
@@ -26,4 +28,6 @@ public interface JoinedRoomRepository extends JpaRepository<JoinedRoomEntity, Lo
     List<JoinedRoomEntity> findByRoom_RoomIdAndIsParticipatingTrue(Long roomId);
 
     boolean existsByRoom_RoomIdAndUser_UserIdAndIsAdminTrue(Long roomId, Long userId);
+
+    JoinedRoomEntity findByUserAndRoom_RoomId(UserEntity user, Long roomId);
 }
