@@ -18,5 +18,8 @@ public class RoomParticipantResponse {
     private String resolution;
     private Boolean isMyGoal;
     private Boolean isSecret;
+    private Boolean workStatus;
+    private Boolean micStatus;
+    private Boolean camStatus;
     private List<GoalResponse> goals;
 }
