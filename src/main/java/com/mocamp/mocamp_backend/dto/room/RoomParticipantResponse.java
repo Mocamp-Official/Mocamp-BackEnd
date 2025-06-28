@@ -14,9 +14,9 @@ import java.util.List;
 @AllArgsConstructor
 public class RoomParticipantResponse {
     private Long userId;
-    private String userSeq;
     private String username;
     private String resolution;
-    private Boolean is_my_goal;
+    private Boolean isMyGoal;
+    private Boolean isSecret;
     private List<GoalResponse> goals;
 }

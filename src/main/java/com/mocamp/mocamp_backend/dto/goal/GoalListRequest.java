@@ -12,4 +12,5 @@ import java.util.List;
 public class GoalListRequest {
     private List<GoalRequest> createGoals;
     private List<Long> deleteGoals;
+    private Boolean isSecret;
 }

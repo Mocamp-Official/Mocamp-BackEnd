@@ -14,5 +14,6 @@ public class GoalListResponse {
     private WebsocketMessageType type;
     private Long userId;
     private List<GoalResponse> goals;
+    private Boolean isSecret;
 
 }
