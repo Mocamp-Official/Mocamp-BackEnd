@@ -63,9 +63,4 @@ public class RoomSocketController {
         roomSocketService.UpdateDelegation(delegationUpdateRequest, roomId, principal);
     }
 
-    @MessageMapping("/data/secret/{roomId}")
-    public void UpdateSecret(@Payload SecretUpdateRequest secretUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
-        roomSocketService.UpdateSecret(secretUpdateRequest, roomId, principal);
-    }
-
 }
