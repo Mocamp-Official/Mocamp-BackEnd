@@ -497,7 +497,8 @@ public class RoomHttpService {
                     .userId(joinedRoom.getUser().getUserId())
                     .username(joinedRoom.getUser().getUsername())
                     .resolution(joinedRoom.getResolution())
-                    .is_my_goal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
+                    .isMyGoal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
+                    .isSecret(joinedRoom.getIsSecret())
                     .goals(goalResponses)
                     .build();
 
