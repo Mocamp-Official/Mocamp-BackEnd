@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class GoalCompleteUpdateRequest {
     private Long goalId;
-    private boolean isCompleted;
+    private Boolean isCompleted;
 }

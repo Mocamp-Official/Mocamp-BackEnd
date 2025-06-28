@@ -11,6 +11,7 @@ import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
 import com.mocamp.mocamp_backend.service.rtc.WebRtcService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -20,6 +21,7 @@ import java.security.Principal;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 public class RoomSocketController {
     private final RoomSocketService roomSocketService;
     private final GoalSocketService goalSocketService;
@@ -42,6 +44,7 @@ public class RoomSocketController {
 
     @MessageMapping("/data/goal/complete/{roomId}")
     public void pressGoal(@Payload GoalCompleteUpdateRequest goalCompleteUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        log.info("isCompleted 값: {}", goalCompleteUpdateRequest.getIsCompleted());
         goalSocketService.pressGoal(goalCompleteUpdateRequest, roomId, principal);
     }
 

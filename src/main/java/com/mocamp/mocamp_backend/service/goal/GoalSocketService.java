@@ -125,7 +125,7 @@ public class GoalSocketService {
             return;
         }
         log.info("[목표 완료 토글 요청] userId: {}, roomId: {}, goalId: {}, 완료 여부: {}",
-                user.getUserId(), roomId, goalCompleteUpdateRequest.getGoalId(), goalCompleteUpdateRequest.isCompleted());
+                user.getUserId(), roomId, goalCompleteUpdateRequest.getGoalId(), goalCompleteUpdateRequest.getIsCompleted());
 
         RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
         if (roomEntity == null) {
@@ -154,7 +154,7 @@ public class GoalSocketService {
             return;
         }
 
-        goalEntity.updateIsCompleted(goalCompleteUpdateRequest.isCompleted());
+        goalEntity.updateIsCompleted(goalCompleteUpdateRequest.getIsCompleted());
         GoalEntity updatedGoalEntity = goalRepository.save(goalEntity);
         log.info("[목표 완료 상태 변경 성공] goalId: {}, isCompleted: {}", updatedGoalEntity.getGoalId(), updatedGoalEntity.getIsCompleted());
 
