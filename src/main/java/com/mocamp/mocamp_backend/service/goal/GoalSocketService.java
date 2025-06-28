@@ -106,7 +106,9 @@ public class GoalSocketService {
                 .map(goal -> new GoalResponse(goal.getGoalId(), goal.getContent(), goal.getIsCompleted()))
                 .toList();
 
-        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList, updatedJoinedRoomEntity.getIsSecret()));
+
+
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList, updatedJoinedRoomEntity.getIsSecret(), user.getUserId().equals(joinedRoomEntity.getUser().getUserId())));
         log.info("[목표 리스트 응답 전송 완료] userId: {}, roomId: {}, 총 목표 수: {}", user.getUserId(), roomId, goalResponseList.size());
     }
 
