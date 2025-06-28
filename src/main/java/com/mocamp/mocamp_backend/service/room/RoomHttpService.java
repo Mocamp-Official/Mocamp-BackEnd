@@ -316,7 +316,7 @@ public class RoomHttpService {
             roomEntity.setIsDeleted(true);
 
             // 사용 시간 계산
-            Duration duration = Duration.between(roomEntity.getEndedAt(), roomEntity.getStartedAt());
+            Duration duration = Duration.between(roomEntity.getStartedAt(), roomEntity.getEndedAt());
             roomEntity.setDuration(LocalTime.ofSecondOfDay(duration.getSeconds()));    // 종료시각 - 시작시각으로 설정
             log.info("[방 종료 처리 완료] roomId: {}, 사용 시간: {}", roomId, roomEntity.getDuration());
 
@@ -495,10 +495,10 @@ public class RoomHttpService {
 
             RoomParticipantResponse roomParticipantResponse = RoomParticipantResponse.builder()
                     .userId(joinedRoom.getUser().getUserId())
-                    .userSeq(joinedRoom.getUser().getUserSeq())
                     .username(joinedRoom.getUser().getUsername())
                     .resolution(joinedRoom.getResolution())
-                    .is_my_goal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
+                    .isMyGoal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
+                    .isSecret(joinedRoom.getIsSecret())
                     .goals(goalResponses)
                     .build();
 

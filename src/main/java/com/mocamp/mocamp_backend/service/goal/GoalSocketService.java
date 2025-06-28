@@ -99,13 +99,17 @@ public class GoalSocketService {
             log.info("[목표 삭제] 삭제된 goalId: {}", deleteGoal);
         }
 
+        // 목표 시크릿 변경 및 저장
+        joinedRoomEntity.updateIsSecret(goalListRequest.getIsSecret());
+        JoinedRoomEntity updatedJoinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
+
         // 전체 목표 조회 후 응답
         List<GoalEntity> updateGoalList = goalRepository.findAllByJoinedRoom(joinedRoomEntity);
         List<GoalResponse> goalResponseList = updateGoalList.stream()
                 .map(goal -> new GoalResponse(goal.getGoalId(), goal.getContent(), goal.getIsCompleted()))
                 .toList();
 
-        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList));
+        messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList, updatedJoinedRoomEntity.getIsSecret()));
         log.info("[목표 리스트 응답 전송 완료] userId: {}, roomId: {}, 총 목표 수: {}", user.getUserId(), roomId, goalResponseList.size());
     }
 
