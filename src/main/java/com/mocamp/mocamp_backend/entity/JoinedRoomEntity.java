@@ -31,6 +31,10 @@ public class JoinedRoomEntity {
     private Boolean isDeleted = false;
 
     @Builder.Default
+    @Column(name = "is_secret", nullable = false)
+    private Boolean isSecret = false;
+
+    @Builder.Default
     @Column(name = "resolution", nullable = false)
     private String resolution = "";
 
@@ -49,4 +53,5 @@ public class JoinedRoomEntity {
 
     public void updateResolution(String resolution) {this.resolution = resolution;}
     public void updateIsAdmin(Boolean isAdmin) {this.isAdmin = isAdmin;}
+    public void updateIsSecret(Boolean isSecret) {this.isSecret = isSecret;}
 }
