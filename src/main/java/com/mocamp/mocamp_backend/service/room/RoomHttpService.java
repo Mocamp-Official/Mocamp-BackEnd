@@ -143,6 +143,8 @@ public class RoomHttpService {
                     .room(roomEntity)
                     .isAdmin(true)
                     .isParticipating(true)
+                    .camStatus(roomCreateRequest.getCamTurnedOn())
+                    .micStatus(roomCreateRequest.getMicTurnedOn())
                     .build();
             joinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
         } catch (Exception e) {
@@ -209,6 +211,8 @@ public class RoomHttpService {
                     .isAdmin(joinedRoomEntity.getIsAdmin())
                     .isParticipating(true)
                     .isDeleted(false)
+                    .micStatus(roomEnterRequest.getMicTurnedOn())
+                    .camStatus(roomEnterRequest.getCamTurnedOn())
                     .build();
             joinedRoomRepository.save(newJoinedRoomEntity);
 
@@ -249,6 +253,8 @@ public class RoomHttpService {
                     .room(roomEntity)
                     .isAdmin(false)
                     .isParticipating(true)
+                    .micStatus(roomEnterRequest.getMicTurnedOn())
+                    .camStatus(roomEnterRequest.getCamTurnedOn())
                     .build();
             joinedRoomRepository.save(joinedRoomEntity);
 
@@ -499,6 +505,9 @@ public class RoomHttpService {
                     .resolution(joinedRoom.getResolution())
                     .isMyGoal(user.getUserId().equals(joinedRoom.getUser().getUserId()))
                     .isSecret(joinedRoom.getIsSecret())
+                    .workStatus(joinedRoom.getWorkStatus())
+                    .micStatus(joinedRoom.getMicStatus())
+                    .camStatus(joinedRoom.getCamStatus())
                     .goals(goalResponses)
                     .build();
 
