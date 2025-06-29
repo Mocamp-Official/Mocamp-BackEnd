@@ -5,7 +5,9 @@ import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.RoomEntity;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
@@ -16,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
+@EnableScheduling
+@Slf4j
 public class RoomScheduler {
 
     private final RoomRepository roomRepository;
@@ -32,6 +36,7 @@ public class RoomScheduler {
      */
     @Scheduled(cron = "0 * * * * *") // 매 분마다
     public void checkRoomEndWarnings() {
+        log.info("[종료 알림 체크 스케쥴러 작동]");
         List<RoomEntity> activeRooms = roomRepository.findAllByStatusTrue();
         LocalDateTime now = LocalDateTime.now();
 
@@ -41,12 +46,15 @@ public class RoomScheduler {
 
             if (minutesLeft == 30 && !alreadySent30.contains(room.getRoomId())) {
                 sendAlert(room, 30);
+                log.info("[30분전 종료 알림] - roomId: {}", room.getRoomId());
                 alreadySent30.add(room.getRoomId());
             } else if (minutesLeft == 20 && !alreadySent20.contains(room.getRoomId())) {
                 sendAlert(room, 20);
+                log.info("[20분전 종료 알림] - roomId: {}", room.getRoomId());
                 alreadySent20.add(room.getRoomId());
             } else if (minutesLeft == 10 && !alreadySent10.contains(room.getRoomId())) {
                 sendAlert(room, 10);
+                log.info("[10분전 종료 알림] - roomId: {}", room.getRoomId());
                 alreadySent10.add(room.getRoomId());
             }
         }

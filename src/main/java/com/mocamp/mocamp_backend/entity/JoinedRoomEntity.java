@@ -38,6 +38,18 @@ public class JoinedRoomEntity {
     @Column(name = "resolution", nullable = false)
     private String resolution = "";
 
+    @Builder.Default
+    @Column(name = "work_status", nullable = false)
+    private Boolean workStatus = true;
+
+    @Builder.Default
+    @Column(name = "mic_status", nullable = false)
+    private Boolean micStatus = true;
+
+    @Builder.Default
+    @Column(name = "cam_status", nullable = false)
+    private Boolean camStatus = true;
+
 
     @OneToMany(mappedBy = "joinedRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -54,4 +66,7 @@ public class JoinedRoomEntity {
     public void updateResolution(String resolution) {this.resolution = resolution;}
     public void updateIsAdmin(Boolean isAdmin) {this.isAdmin = isAdmin;}
     public void updateIsSecret(Boolean isSecret) {this.isSecret = isSecret;}
+    public void updateWorkStatus(Boolean workStatus) {this.workStatus = workStatus;}
+    public void updateMicStatus(Boolean micStatus) {this.micStatus = micStatus;}
+    public void updateCamStatus(Boolean camStatus) {this.camStatus = camStatus;}
 }

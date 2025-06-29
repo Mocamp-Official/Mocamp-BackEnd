@@ -15,5 +15,6 @@ public class GoalListResponse {
     private Long userId;
     private List<GoalResponse> goals;
     private Boolean isSecret;
+    private Boolean isMyGoal;
 
 }
