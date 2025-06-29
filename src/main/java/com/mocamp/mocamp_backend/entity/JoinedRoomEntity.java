@@ -66,4 +66,7 @@ public class JoinedRoomEntity {
     public void updateResolution(String resolution) {this.resolution = resolution;}
     public void updateIsAdmin(Boolean isAdmin) {this.isAdmin = isAdmin;}
     public void updateIsSecret(Boolean isSecret) {this.isSecret = isSecret;}
+    public void updateWorkStatus(Boolean workStatus) {this.workStatus = workStatus;}
+    public void updateMicStatus(Boolean micStatus) {this.micStatus = micStatus;}
+    public void updateCamStatus(Boolean camStatus) {this.camStatus = camStatus;}
 }
