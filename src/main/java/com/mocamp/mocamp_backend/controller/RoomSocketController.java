@@ -7,7 +7,7 @@ import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.rtc.IceCandidateDto;
 import com.mocamp.mocamp_backend.dto.rtc.SdpOfferRequest;
-import com.mocamp.mocamp_backend.dto.secret.SecretUpdateRequest;
+import com.mocamp.mocamp_backend.dto.status.StatusDTO;
 import com.mocamp.mocamp_backend.service.goal.GoalSocketService;
 import com.mocamp.mocamp_backend.service.room.RoomSocketService;
 import com.mocamp.mocamp_backend.service.rtc.WebRtcService;
@@ -49,18 +49,36 @@ public class RoomSocketController {
     }
 
     @MessageMapping("/data/notice/{roomId}")
-    public void UpdateNotice(@Payload NoticeUpdateRequest noticeUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
-        roomSocketService.UpdateNotice(noticeUpdateRequest, roomId, principal);
+    public void updateNotice(@Payload NoticeUpdateRequest noticeUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.updateNotice(noticeUpdateRequest, roomId, principal);
     }
 
     @MessageMapping("/data/resolution/{roomId}")
-    public void UpdateResolution(@Payload ResolutionUpdateRequest resolutionUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
-        roomSocketService.UpdateResolution(resolutionUpdateRequest, roomId, principal);
+    public void updateResolution(@Payload ResolutionUpdateRequest resolutionUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.updateResolution(resolutionUpdateRequest, roomId, principal);
     }
 
     @MessageMapping("/data/delegation/{roomId}")
     public void UpdateDelegation(@Payload DelegationUpdateRequest delegationUpdateRequest, @DestinationVariable("roomId") Long roomId, Principal principal) {
-        roomSocketService.UpdateDelegation(delegationUpdateRequest, roomId, principal);
+        roomSocketService.updateDelegation(delegationUpdateRequest, roomId, principal);
     }
+
+    @MessageMapping("/data/work-status/{roomId}")
+    public void UpdateWorkStatus(@Payload StatusDTO statusDTO, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.updateWorkStatus(statusDTO, roomId, principal);
+    }
+
+    @MessageMapping("/data/cam-status/{roomId}")
+    public void UpdateCamStatus(@Payload StatusDTO statusDTO, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.updateCamStatus(statusDTO, roomId, principal);
+    }
+
+    @MessageMapping("/data/mic-status/{roomId}")
+    public void UpdateMicStatus(@Payload StatusDTO statusDTO, @DestinationVariable("roomId") Long roomId, Principal principal) {
+        roomSocketService.updateMicStatus(statusDTO, roomId, principal);
+    }
+
+
+
 
 }
