@@ -7,8 +7,7 @@ import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateRequest;
 import com.mocamp.mocamp_backend.dto.notice.NoticeUpdateResponse;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateRequest;
 import com.mocamp.mocamp_backend.dto.resolution.ResolutionUpdateResponse;
-import com.mocamp.mocamp_backend.dto.secret.SecretUpdateRequest;
-import com.mocamp.mocamp_backend.dto.secret.SecretUpdateResponse;
+import com.mocamp.mocamp_backend.dto.status.StatusDTO;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketErrorMessage;
 import com.mocamp.mocamp_backend.dto.websocket.WebsocketMessageType;
 import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
@@ -36,6 +35,7 @@ public class RoomSocketService {
     private static final String USER_NOT_FOUND_MESSAGE = "유저정보 조회에 실패했습니다";
     private static final String USER_NOT_IN_ROOM_MESSAGE = "해당 방에 참여 중인 유저가 아닙니다";
     private static final String USER_NOT_HOST_MESSAGE = "해당 방의 방장이 아닙니다";
+    private static final String ANOTHER_USER_STATUS_TOGGLE_MESSAGE = "다른 유저의 상태를 토글했습니다";
 
     private final RoomRepository roomRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -48,7 +48,7 @@ public class RoomSocketService {
      * @param roomId room ID
      */
     @Transactional
-    public void UpdateNotice(NoticeUpdateRequest noticeUpdateRequest, Long roomId, Principal principal) {
+    public void updateNotice(NoticeUpdateRequest noticeUpdateRequest, Long roomId, Principal principal) {
         String email = principal.getName();
         UserEntity user = userRepository.findUserByEmail(email).orElse(null);
         if (user == null) {
@@ -97,7 +97,7 @@ public class RoomSocketService {
      * @param roomId room ID
      */
     @Transactional
-    public void UpdateResolution(ResolutionUpdateRequest resolutionUpdateRequest, Long roomId, Principal principal) {
+    public void updateResolution(ResolutionUpdateRequest resolutionUpdateRequest, Long roomId, Principal principal) {
         String email = principal.getName();
         UserEntity user = userRepository.findUserByEmail(email).orElse(null);
         if (user == null) {
@@ -147,7 +147,7 @@ public class RoomSocketService {
      * @param roomId 현재 접속하고 있는 방 ID
      */
     @Transactional
-    public void UpdateDelegation(DelegationUpdateRequest delegationUpdateRequest, Long roomId, Principal principal) {
+    public void updateDelegation(DelegationUpdateRequest delegationUpdateRequest, Long roomId, Principal principal) {
         String email = principal.getName();
         UserEntity user = userRepository.findUserByEmail(email).orElse(null);
         if (user == null) {
@@ -202,5 +202,185 @@ public class RoomSocketService {
 
         // WebSocket 응답 전송
         messagingTemplate.convertAndSend("/sub/data/" + roomId , new DelegationUpdateResponse(WebsocketMessageType.ADMIN_UPDATED, user.getUsername(), delegatedUsername));
+    }
+
+    /**
+     * 모캠프 작업 공간에서 작업 상태 변경하는 메서드
+     * @param statusDTO 작업 상태
+     * @param roomId 모캠프 방 ID
+     */
+    public void updateWorkStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        log.info("[작업 상태 변경 요청] userId: {}, roomId: {}" ,user.getUserId(), roomId);
+
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            log.warn("[방 조회 실패] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            log.warn("[비활성화된 방 접근] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
+            return;
+        }
+
+        // 해당 방에 참여중인 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            log.warn("[방에 참여중인 유저인지 확인] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
+            return;
+        }
+
+        // 다른 사용자 작업 상태 토글인지 확인
+        if(!user.getUserId().equals(statusDTO.getUserId())) {
+            log.warn("[작업 상태 변경 실패] 본인의 상태만 변경 가능 - 요청자: {}, 대상: {}", user.getUserId(), statusDTO.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ANOTHER_USER_STATUS_TOGGLE_MESSAGE)));
+            return;
+        }
+
+        // 작업 상태 변경 및 저장
+        joinedRoomEntity.updateWorkStatus(statusDTO.getWorkStatus());
+        JoinedRoomEntity updatedJoinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
+
+        log.info("[작업 상태 변경 완료] userId: {}, roomId: {}, workStatus: {}" ,user.getUserId(), roomId, updatedJoinedRoomEntity.getWorkStatus());
+        // WebSocket 응답 전송
+        StatusDTO workStatusDTO = StatusDTO.builder()
+                .type(WebsocketMessageType.WORK_STATUS_UPDATED)
+                .userId(user.getUserId())
+                .workStatus(updatedJoinedRoomEntity.getWorkStatus())
+                .build();
+        messagingTemplate.convertAndSend("/sub/data/" + roomId ,workStatusDTO);
+    }
+
+    /**
+     * 모캠프 작업 공간에서 캠 상태 변경하는 메서드
+     * @param statusDTO 작업 상태
+     * @param roomId 모캠프 방 ID
+     */
+    public void updateCamStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        log.info("[작업 상태 변경 요청] userId: {}, roomId: {}" ,user.getUserId(), roomId);
+
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            log.warn("[방 조회 실패] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            log.warn("[비활성화된 방 접근] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
+            return;
+        }
+
+        // 해당 방에 참여중인 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            log.warn("[방에 참여중인 유저인지 확인] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
+            return;
+        }
+
+        // 다른 사용자 캠 상태 토글인지 확인
+        if(!user.getUserId().equals(statusDTO.getUserId())) {
+            log.warn("[캠 상태 변경 실패] 본인의 상태만 변경 가능 - 요청자: {}, 대상: {}", user.getUserId(), statusDTO.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ANOTHER_USER_STATUS_TOGGLE_MESSAGE)));
+            return;
+        }
+
+        // 캠 상태 변경 및 저장
+        joinedRoomEntity.updateCamStatus(statusDTO.getCamStatus());
+        JoinedRoomEntity updatedJoinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
+
+        log.info("[캠 상태 변경 완료] userId: {}, roomId: {}, camStatus: {}" ,user.getUserId(), roomId, updatedJoinedRoomEntity.getCamStatus());
+        // WebSocket 응답 전송
+        StatusDTO camStatusDTO = StatusDTO.builder()
+                .type(WebsocketMessageType.CAM_STATUS_UPDATED)
+                .userId(user.getUserId())
+                .camStatus(updatedJoinedRoomEntity.getCamStatus())
+                .build();
+        messagingTemplate.convertAndSend("/sub/data/" + roomId ,camStatusDTO);
+    }
+
+    /**
+     * 모캠프 작업 공간에서 마이크 상태 변경하는 메서드
+     * @param statusDTO 작업 상태
+     * @param roomId 모캠프 방 ID
+     */
+    public void updateMicStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
+        String email = principal.getName();
+        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("[유저 조회 실패] userId: {}", user.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        log.info("[작업 상태 변경 요청] userId: {}, roomId: {}" ,user.getUserId(), roomId);
+
+        // roomId에 해당하는 방이 존재하는지 확인
+        RoomEntity roomEntity = roomRepository.findById(roomId).orElse(null);
+        if (roomEntity == null) {
+            log.warn("[방 조회 실패] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_FOUND_MESSAGE)));
+            return;
+        }
+
+        // 해당하는 방이 활동중인지 확인
+        if (!roomEntity.getStatus()) {
+            log.warn("[비활성화된 방 접근] roomId: {}", roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ROOM_NOT_ACTIVE_MESSAGE)));
+            return;
+        }
+
+        // 해당 방에 참여중인 유저인지 확인
+        JoinedRoomEntity joinedRoomEntity = joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, user.getUserId()).orElse(null);
+        if (joinedRoomEntity == null) {
+            log.warn("[방에 참여중인 유저인지 확인] 방에 소속되지 않은 사용자 - userId: {}, roomId: {}", user.getUserId(), roomId);
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), USER_NOT_IN_ROOM_MESSAGE)));
+            return;
+        }
+
+        // 다른 사용자 마이크 상태 토글인지 확인
+        if(!user.getUserId().equals(statusDTO.getUserId())) {
+            log.warn("[마이크 상태 변경 실패] 본인의 상태만 변경 가능 - 요청자: {}, 대상: {}", user.getUserId(), statusDTO.getUserId());
+            messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(403, new WebsocketErrorMessage(user.getUserId(), ANOTHER_USER_STATUS_TOGGLE_MESSAGE)));
+            return;
+        }
+
+        // 마이크 상태 변경 및 저장
+        joinedRoomEntity.updateMicStatus(statusDTO.getMicStatus());
+        JoinedRoomEntity updatedJoinedRoomEntity = joinedRoomRepository.save(joinedRoomEntity);
+
+        log.info("[캠 상태 변경 완료] userId: {}, roomId: {}, micStatus: {}" ,user.getUserId(), roomId, updatedJoinedRoomEntity.getMicStatus());
+        // WebSocket 응답 전송
+        StatusDTO micStatusDTO = StatusDTO.builder()
+                .type(WebsocketMessageType.MIC_STATUS_UPDATED)
+                .userId(user.getUserId())
+                .micStatus(updatedJoinedRoomEntity.getMicStatus())
+                .build();
+        messagingTemplate.convertAndSend("/sub/data/" + roomId ,micStatusDTO);
     }
 }
