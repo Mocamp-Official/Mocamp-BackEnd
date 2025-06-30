@@ -46,4 +46,6 @@ public class UserEntity {
     @OneToOne
     @JoinColumn(name = "image_id", nullable = true)
     private ImageEntity image;
+
+    public void updateUsername(String username) {this.username = username;}
 }
