@@ -7,9 +7,12 @@ import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
+import com.mocamp.mocamp_backend.entity.ImageEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
+import com.mocamp.mocamp_backend.service.image.ImageType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -35,6 +38,7 @@ public class NaverLoginService {
     private final UserRepository userRepository;
     private final TokenRepository tokenRepository;
     private final JwtProvider jwtProvider;
+    private final ImageRepository imageRepository;
     @Value("${naver.client.id}")
     private String clientId;
     @Value("${naver.client.secret}")
@@ -120,10 +124,12 @@ public class NaverLoginService {
         String id = jsonNode.get("response").get("id").asText();
         String email = jsonNode.get("response").get("email").asText();
         String nickname = jsonNode.get("response").get("name").asText();
+        String profile_image = jsonNode.get("response").get("profile_image").asText();
 
         userInfo.put("id",id);
         userInfo.put("email",email);
         userInfo.put("nickname",nickname);
+        userInfo.put("profile_image",profile_image);
 
         return userInfo;
     }
@@ -136,11 +142,19 @@ public class NaverLoginService {
         String userSeq = naverUserInfo.get("id").toString();
         String naverEmail = naverUserInfo.get("email").toString();
         String nickname = naverUserInfo.get("nickname").toString();
+        String profile_image = naverUserInfo.get("profile_image").toString();
+        ImageEntity imageEntity;
 
         UserEntity optionalUserEntity = userRepository.findUserByUserSeq(naverUserInfo.get("id").toString()).orElse(null);
 
         if(optionalUserEntity == null) { // 회원가입의 경우
-            UserEntity newUserEntity = createUserEntity(userSeq, naverEmail, nickname);
+            imageEntity = ImageEntity.builder()
+                    .type(ImageType.profile)
+                    .path(profile_image)
+                    .build();
+            ImageEntity updatedImageEntity = imageRepository.save(imageEntity);
+
+            UserEntity newUserEntity = createUserEntity(userSeq, naverEmail, nickname, updatedImageEntity);
             userRepository.save(newUserEntity);
 
             Authentication authentication = createAuthenticationFromEmail(newUserEntity.getEmail());
@@ -168,7 +182,7 @@ public class NaverLoginService {
      * @param nickname 네이버 이름
      * @return UserEntity
      */
-    private UserEntity createUserEntity(String userSeq, String naverEmail, String nickname) {
+    private UserEntity createUserEntity(String userSeq, String naverEmail, String nickname, ImageEntity imageEntity) {
         return UserEntity.builder()
                 .userSeq(userSeq)
                 .email(naverEmail)
@@ -176,6 +190,7 @@ public class NaverLoginService {
                 .emailVerifiedYN("N")
                 .createdAt(LocalDateTime.now())
                 .modifiedAt(LocalDateTime.now())
+                .image(imageEntity)
                 .build();
     }
 

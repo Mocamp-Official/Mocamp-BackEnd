@@ -5,17 +5,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mocamp.mocamp_backend.authentication.JwtProvider;
 import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
+import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResult;
+import com.mocamp.mocamp_backend.entity.ImageEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
+import com.mocamp.mocamp_backend.service.image.ImageType;
+import com.mocamp.mocamp_backend.service.s3.S3Uploader;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -24,17 +27,25 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KakaoLoginService {
 
+    private static final String IMAGE_SAVING_MESSAGE = "이미지 저장에 실패했습니다";
+
+    private final ImageRepository imageRepository;
+    @Value("${cloud.aws.s3.bucket}")
+    private String DirName;
     private final UserRepository userRepository;
     private final JwtProvider jwtProvider;
     private final TokenRepository tokenRepository;
+    private final S3Uploader s3Uploader;
     @Value("${kakao.key.client-id}")
     private String clientId;
     @Value("${kakao.page.uri}")
@@ -115,15 +126,17 @@ public class KakaoLoginService {
         Long id = jsonNode.get("id").asLong();
         String email = jsonNode.get("kakao_account").get("email").asText();
         String nickname = jsonNode.get("properties").get("nickname").asText();
+        String profile_image = jsonNode.get("properties").get("profile_image").asText();
 
         userInfo.put("id",id);
         userInfo.put("email",email);
         userInfo.put("nickname",nickname);
+        userInfo.put("profile_image",profile_image);
 
         return userInfo;
     }
 
-    private UserEntity createUserEntity(String userSeq, String kakaoEmail, String nickname) {
+    private UserEntity createUserEntity(String userSeq, String kakaoEmail, String nickname, ImageEntity imageEntity) {
         return UserEntity.builder()
                 .userSeq(userSeq)
                 .email(kakaoEmail)
@@ -131,6 +144,7 @@ public class KakaoLoginService {
                 .emailVerifiedYN("N")
                 .createdAt(LocalDateTime.now())
                 .modifiedAt(LocalDateTime.now())
+                .image(imageEntity)
                 .build();
     }
 
@@ -143,11 +157,19 @@ public class KakaoLoginService {
         String userSeq = kakaoUserInfo.get("id").toString();
         String kakaoEmail = kakaoUserInfo.get("email").toString();
         String nickname = kakaoUserInfo.get("nickname").toString();
+        String profile_image = kakaoUserInfo.get("profile_image").toString();
+        ImageEntity imageEntity;
 
         UserEntity optionalUserEntity = userRepository.findUserByUserSeq(kakaoUserInfo.get("id").toString()).orElse(null);
 
         if(optionalUserEntity == null) { // 회원가입의 경우
-            UserEntity newUserEntity = createUserEntity(userSeq, kakaoEmail, nickname);
+            imageEntity = ImageEntity.builder()
+                    .type(ImageType.profile)
+                    .path(profile_image)
+                    .build();
+            ImageEntity updatedImageEntity = imageRepository.save(imageEntity);
+
+            UserEntity newUserEntity = createUserEntity(userSeq, kakaoEmail, nickname, updatedImageEntity);
             userRepository.save(newUserEntity);
 
             Authentication authentication = createAuthenticationFromEmail(newUserEntity.getEmail());
