@@ -29,4 +29,6 @@ public class ImageEntity {
 
     @OneToOne(mappedBy = "image", cascade = CascadeType.ALL, orphanRemoval = true)
     private RoomEntity room;
+
+    public void updatePath(String path) {this.path = path;}
 }
