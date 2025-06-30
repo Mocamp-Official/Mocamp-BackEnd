@@ -6,9 +6,12 @@ import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.loginResponse.LoginResponse;
+import com.mocamp.mocamp_backend.entity.ImageEntity;
 import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.TokenRepository;
 import com.mocamp.mocamp_backend.repository.UserRepository;
+import com.mocamp.mocamp_backend.service.image.ImageType;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -32,14 +35,16 @@ public class GoogleLoginService {
     private final GoogleLoginConfig googleLoginConfig;
     private final JwtProvider jwtProvider;
     private final RestTemplate restTemplate;
+    private final ImageRepository imageRepository;
 
     public GoogleLoginService(final UserRepository userRepository, final TokenRepository tokenRepository, final GoogleLoginConfig googleLoginConfig,
-                              final JwtProvider jwtProvider) {
+                              final JwtProvider jwtProvider, ImageRepository imageRepository) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.googleLoginConfig = googleLoginConfig;
         this.jwtProvider = jwtProvider;
         this.restTemplate = new RestTemplate();
+        this.imageRepository = imageRepository;
     }
 
     /**
@@ -88,7 +93,7 @@ public class GoogleLoginService {
     /**
      * DB에 사용자 정보를 저장하기 위한 엔티티 객체 생성 메서드
      */
-    private UserEntity createUserEntity(GoogleUserProfile googleUserProfile) {
+    private UserEntity createUserEntity(GoogleUserProfile googleUserProfile, ImageEntity imageEntity) {
         return UserEntity.builder()
                 .userSeq(googleUserProfile.getId())
                 .email(googleUserProfile.getEmail())
@@ -96,6 +101,7 @@ public class GoogleLoginService {
                 .emailVerifiedYN("N")
                 .createdAt(LocalDateTime.now())
                 .modifiedAt(LocalDateTime.now())
+                .image(imageEntity)
                 .build();
     }
 
@@ -152,6 +158,7 @@ public class GoogleLoginService {
         UserEntity userEntity;
         GoogleUserProfile googleUserProfile;
         String jwtToken, refreshToken;
+        ImageEntity imageEntity;
 
         try {
             String accessToken = requestGoogleAccessToken(code, redirectUrl);
@@ -164,7 +171,13 @@ public class GoogleLoginService {
         try {
             Optional<UserEntity> optionalUserEntity = userRepository.findUserByUserSeq(googleUserProfile.getId());
             if (optionalUserEntity.isEmpty()) {   // 회원가입
-                UserEntity newUserEntity = createUserEntity(googleUserProfile);
+                imageEntity = ImageEntity.builder()
+                        .type(ImageType.profile)
+                        .path(googleUserProfile.getPicture())
+                        .build();
+                ImageEntity updatedImageEntity = imageRepository.save(imageEntity);
+
+                UserEntity newUserEntity = createUserEntity(googleUserProfile, updatedImageEntity);
                 userEntity = userRepository.save(newUserEntity);
             } else {
                 userEntity = optionalUserEntity.get();
