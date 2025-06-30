@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "User Controller (마이홈)", description = "마이홈 메뉴 구성을 위한 HTTP 엔드포인트")
 @RestController
@@ -48,5 +49,16 @@ public class UserController {
     @PostMapping("/logout")
     public ResponseEntity<CommonResponse> logout() {
         return userService.logout();
+    }
+
+    @Operation(
+            summary = "유저 정보 수정(유저 이름 및 프로필 사진)",
+            parameters = { @Parameter(name = "Authorization", description = "Jwt 토큰", required = true) },
+            responses = { @ApiResponse(responseCode = "200", description = "유저 정보 수정 성공") }
+    )
+    @PatchMapping("/modify")
+    public ResponseEntity<CommonResponse> modifyUserProfile(@RequestPart(value = "username", required = false) String username,
+                                                            @RequestPart(value = "image", required = false) MultipartFile imageFile) {
+        return userService.modifyUserProfile(username, imageFile);
     }
 }
