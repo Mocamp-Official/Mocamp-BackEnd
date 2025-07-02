@@ -96,7 +96,7 @@ public class UserService {
             for(JoinedRoomEntity joinedRoomEntity : joinedRoomEntityList) {
                 RoomEntity roomEntity;
                 try {
-                    roomEntity = roomRepository.findById(joinedRoomEntity.getJoinedRoomId()).orElseThrow();
+                    roomEntity = roomRepository.findById(joinedRoomEntity.getRoom().getRoomId()).orElseThrow();
                 } catch (Exception e) {
                     log.error("[방 조회 실패] joinedRoomId : {} \n message : {}", joinedRoomEntity.getJoinedRoomId(), e.getMessage(), e);
                     throw new RuntimeException();
