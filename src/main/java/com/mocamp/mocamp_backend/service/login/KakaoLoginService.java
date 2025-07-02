@@ -172,7 +172,7 @@ public class KakaoLoginService {
             UserEntity newUserEntity = createUserEntity(userSeq, kakaoEmail, nickname, updatedImageEntity);
             userRepository.save(newUserEntity);
 
-            Authentication authentication = createAuthenticationFromEmail(newUserEntity.getEmail());
+            Authentication authentication = createAuthenticationFromEmail(newUserEntity.getUserSeq());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
@@ -180,7 +180,7 @@ public class KakaoLoginService {
 
             return createLoginResult(accessToken, refreshToken);
         } else { // 기존 로그인의 경우
-            Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getEmail());
+            Authentication authentication = createAuthenticationFromEmail(optionalUserEntity.getUserSeq());
             String accessToken = jwtProvider.generateAccessToken(authentication);
             String refreshToken = jwtProvider.generateRefreshToken(authentication);
 
