@@ -48,7 +48,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserEntity getUserByContextHolder() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         UserDetails userDetails = (UserDetails) principal;
-        return userRepository.findUserByEmail(userDetails.getUsername())
+        return userRepository.findUserByUserSeq(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_EXCEPTION));
     }
 
