@@ -188,7 +188,7 @@ public class GoogleLoginService {
         }
 
         try {
-            Authentication authentication = createAuthenticationFromEmail(userEntity.getEmail());
+            Authentication authentication = createAuthenticationFromEmail(userEntity.getUserSeq());
             jwtToken = jwtProvider.generateAccessToken(authentication);
             refreshToken = jwtProvider.generateRefreshToken(authentication);
 
