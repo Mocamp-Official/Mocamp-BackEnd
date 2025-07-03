@@ -411,7 +411,7 @@ public class RoomHttpService {
      * @param roomId 참여하고자 하는 방의 Id
      * @return 자신을 포함하여 현재 방에 속해 있는 멤버들의 데이터 전체
      */
-    public ResponseEntity<CommonResponse> getRoomData(Long roomId) {
+    public ResponseEntity<CommonResponse> getRoomDataById(Long roomId) {
         UserEntity userEntity;
         RoomEntity roomEntity;
 
@@ -436,6 +436,40 @@ public class RoomHttpService {
         }
         roomEntity = optionalRoomEntity.get();
         log.info("[방 조회 성공] roomId: {}, roomName: {}", roomEntity.getRoomId(), roomEntity.getRoomName());
+
+        return ResponseEntity.ok(new SuccessResponse(200, RoomDataResponse.convertEntityToDTO(roomEntity)));
+    }
+
+    /**
+     * 방 데이터 조회 메서드
+     * @param roomSeq 참여하고자 하는 방의 Seq
+     * @return 자신을 포함하여 현재 방에 속해 있는 멤버들의 데이터 전체
+     */
+    public ResponseEntity<CommonResponse> getRoomDataBySeq(String roomSeq) {
+        UserEntity userEntity;
+        RoomEntity roomEntity;
+
+        log.info("[방 데이터 조회 요청] roomSeq: {}", roomSeq);
+
+        // 유저 검증
+        try {
+            userEntity = userDetailsService.getUserByContextHolder();
+            log.info("[유저 인증 완료] userId: {}", userEntity.getUserId());
+        } catch (Exception e) {
+            log.error("[유저 인증 실패] {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
+        }
+
+        // roomSeq 검증
+        Optional<RoomEntity> optionalRoomEntity = roomRepository.findByRoomSeq(roomSeq);
+        if (optionalRoomEntity.isEmpty()) {
+            log.warn("[방 조회 실패] 존재하지 않는 roomSeq: {}", roomSeq);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
+        }
+        roomEntity = optionalRoomEntity.get();
+        log.info("[방 조회 성공] roomSeq: {}, roomName: {}", roomEntity.getRoomSeq(), roomEntity.getRoomName());
 
         return ResponseEntity.ok(new SuccessResponse(200, RoomDataResponse.convertEntityToDTO(roomEntity)));
     }
