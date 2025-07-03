@@ -86,8 +86,21 @@ public class RoomHttpController {
             responses = { @ApiResponse(responseCode = "200", description = "데이터 조회 성공") }
     )
     @GetMapping("/{roomId}")
-    public ResponseEntity<CommonResponse> getRoomData(@PathVariable Long roomId) {
-        return roomHttpService.getRoomData(roomId);
+    public ResponseEntity<CommonResponse> getRoomDataById(@PathVariable Long roomId) {
+        return roomHttpService.getRoomDataById(roomId);
+    }
+
+    @Operation(
+            summary = "모캠프 방 정보 조회",
+            parameters = {
+                    @Parameter(name = "Authorization", description = "Jwt 토큰", required = true),
+                    @Parameter(name = "roomSqe", description = "데이터를 조회하고자 하는 방 Seq", required = true)
+            },
+            responses = { @ApiResponse(responseCode = "200", description = "데이터 조회 성공") }
+    )
+    @GetMapping("/{roomSeq}/seq")
+    public ResponseEntity<CommonResponse> getRoomDataBySeq(@PathVariable String roomSeq) {
+        return roomHttpService.getRoomDataBySeq(roomSeq);
     }
 
     @Operation(
