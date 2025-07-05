@@ -115,7 +115,7 @@ public class UserService {
                 UserGoalData userGoalData = UserGoalData.builder()
                         .date(roomEntity.getEndedAt().getMonth().getValue() + "." + roomEntity.getEndedAt().getDayOfMonth())
                         .amount((long) goalDataList.size())
-                        .goalList(goalDataList)
+                        .userGoalList(goalDataList)
                         .build();
                 goalList.add(userGoalData);
                 totalNumberOfGoals += userGoalData.getAmount();
@@ -168,10 +168,14 @@ public class UserService {
 
                     // 날짜별 goalList 이어붙이기
                     List<GoalListData> mergedGoalList = dataList.stream()
-                            .flatMap(data -> data.getGoalList().stream())
+                            .flatMap(data -> data.getUserGoalList().stream())
                             .collect(Collectors.toList());
 
-                    return new UserGoalData(date, totalAmount, mergedGoalList);
+                    return UserGoalData.builder()
+                            .date(date)
+                            .amount(totalAmount)
+                            .userGoalList(mergedGoalList)
+                            .build();
                 })
                 .toList();
 
@@ -219,7 +223,10 @@ public class UserService {
         }
 
         List<GoalListData> goalListData = joinedRoomEntity.getGoals().stream()
-                .map(entry -> new GoalListData(entry.getGoalId(), entry.getContent(), entry.getIsCompleted()))
+                .map(entry -> GoalListData.builder()
+                        .goalId(entry.getGoalId())
+                        .content(entry.getContent())
+                        .isCompleted(entry.getIsCompleted()).build())
                 .toList();
         Map<String, Object> goalListMap = new HashMap<>();
         goalListMap.put("userId", userEntity.getUserId());
