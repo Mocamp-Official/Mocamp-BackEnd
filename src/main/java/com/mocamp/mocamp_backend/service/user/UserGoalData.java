@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 
 @Builder
 @Getter
@@ -13,4 +15,5 @@ import lombok.NoArgsConstructor;
 public class UserGoalData {
     private String date;
     private Long amount;
+    private List<GoalListData> goalList;
 }
