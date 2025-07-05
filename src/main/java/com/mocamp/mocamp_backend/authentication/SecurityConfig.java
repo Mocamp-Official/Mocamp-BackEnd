@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> {
                             auth.requestMatchers("/healthy").permitAll();
                             auth.requestMatchers("/api/login/**").permitAll();
+                            auth.requestMatchers("/api/user/modify").permitAll();
                             auth.requestMatchers("/api-docs/**").permitAll();
                             auth.requestMatchers("/ws/**").permitAll();
                             auth.requestMatchers("/ws").permitAll();
