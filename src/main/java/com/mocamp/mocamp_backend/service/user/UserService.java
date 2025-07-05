@@ -168,19 +168,21 @@ public class UserService {
                     throw new RuntimeException();
                 }
 
+                List<GoalListData> goalDataList = joinedRoomEntity.getGoals().stream()
+                        .map(entry -> new GoalListData(entry.getGoalId(), entry.getContent(), entry.getIsCompleted()))
+                        .toList();
+
                 UserRoomData userRoomData = makeRoomData(roomEntity, joinedRoomEntity.getGoals());
                 roomList.add(userRoomData);
 
                 UserTimeData userTimeData = UserTimeData.builder()
                         .date(roomEntity.getEndedAt().getMonth().getValue() + "." + roomEntity.getEndedAt().getDayOfMonth())
                         .duration((long) (roomEntity.getDuration().getHour() * 60 + roomEntity.getDuration().getMinute()))
+                        .userGoalList(goalDataList)
                         .build();
                 timeList.add(userTimeData);
                 totalDurationMinute += userTimeData.getDuration();
 
-                List<GoalListData> goalDataList = joinedRoomEntity.getGoals().stream()
-                        .map(entry -> new GoalListData(entry.getGoalId(), entry.getContent(), entry.getIsCompleted()))
-                        .toList();
                 UserGoalData userGoalData = UserGoalData.builder()
                         .date(roomEntity.getEndedAt().getMonth().getValue() + "." + roomEntity.getEndedAt().getDayOfMonth())
                         .amount((long) goalDataList.size())
