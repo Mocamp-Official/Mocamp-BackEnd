@@ -44,14 +44,83 @@ public class UserService {
     private final S3Uploader s3Uploader;
 
     // 모캠프 방 별 데이터 생성
-    private UserRoomData makeRoomData(final RoomEntity roomEntity) {;
+    private UserRoomData makeRoomData(final RoomEntity roomEntity, final List<GoalEntity> goalList) {;
+        List<GoalListData> goalDataList = goalList.stream().map(
+                entry -> new GoalListData(entry.getGoalId(), entry.getContent(), entry.getIsCompleted())
+        ).toList();
+
         return UserRoomData.builder()
                 .roomId(roomEntity.getRoomId())
                 .roomName(roomEntity.getRoomName())
                 .startedAt(roomEntity.getStartedAt())
                 .duration(roomEntity.getDuration())
                 .status(roomEntity.getStatus())
+                .userGoalList(goalDataList)
                 .build();
+    }
+
+    // 날짜별 모캠프 사용 시간 데이터 생성
+    private List<UserTimeData> makeTimeData(final List<UserTimeData> timeList) {
+        return timeList.stream()
+                .collect(Collectors.groupingBy(
+                        UserTimeData::getDate,
+                        Collectors.toList()
+                ))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    String date = entry.getKey();
+                    List<UserTimeData> dataList = entry.getValue();
+
+                    // 날짜별 duration 합산
+                    Long totalDuration = dataList.stream()
+                            .mapToLong(UserTimeData::getDuration)
+                            .sum();
+
+                    // 날짜별 goalList 이어붙이기
+                    List<GoalListData> mergedGoalList = dataList.stream()
+                            .flatMap(data -> data.getUserGoalList().stream())
+                            .toList();
+
+                    return UserTimeData.builder()
+                            .date(date)
+                            .duration(totalDuration)
+                            .userGoalList(mergedGoalList)
+                            .build();
+                })
+                .toList();
+    }
+
+    // 날짜별 목표 수행 데이터 생성
+    private List<UserGoalData> makeGoalData(final List<UserGoalData> goalList) {
+        return goalList.stream()
+                .collect(Collectors.groupingBy(
+                        UserGoalData::getDate,
+                        Collectors.toList()
+                ))
+                .entrySet()
+                .stream()
+                .map(entry -> {
+                    String date = entry.getKey();
+                    List<UserGoalData> dataList = entry.getValue();
+
+                    // 날짜별 amount 합산
+                    Long totalAmount = dataList.stream()
+                            .mapToLong(UserGoalData::getAmount)
+                            .sum();
+
+                    // 날짜별 goalList 이어붙이기
+                    List<GoalListData> mergedGoalList = dataList.stream()
+                            .flatMap(data -> data.getUserGoalList().stream())
+                            .collect(Collectors.toList());
+
+                    return UserGoalData.builder()
+                            .date(date)
+                            .amount(totalAmount)
+                            .userGoalList(mergedGoalList)
+                            .build();
+                })
+                .toList();
     }
 
     /**
@@ -99,7 +168,7 @@ public class UserService {
                     throw new RuntimeException();
                 }
 
-                UserRoomData userRoomData = makeRoomData(roomEntity);
+                UserRoomData userRoomData = makeRoomData(roomEntity, joinedRoomEntity.getGoals());
                 roomList.add(userRoomData);
 
                 UserTimeData userTimeData = UserTimeData.builder()
@@ -127,57 +196,8 @@ public class UserService {
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
         }
 
-        // 날짜별 duration 합산
-        List<UserTimeData> timeListResult = timeList.stream()
-                .collect(Collectors.groupingBy(
-                        UserTimeData::getDate,
-                        Collectors.summingLong(UserTimeData::getDuration)
-                ))
-                .entrySet()
-                .stream()
-                .map(entry -> new UserTimeData(entry.getKey(), entry.getValue()))
-                .toList();
-
-        // 날짜별 goal amount 합산 및
-//        List<UserGoalData> goalListResult = goalList.stream()
-//                .collect(Collectors.groupingBy(
-//                        UserGoalData::getDate,
-//                        Collectors.summingLong(UserGoalData::getAmount),
-//                        Collectors.toList()
-//                ))
-//                .entrySet()
-//                .stream()
-//                .map(entry -> new UserGoalData(entry.getKey(), entry.getValue()))
-//                .toList();
-
-        List<UserGoalData> goalListResult = goalList.stream()
-                .collect(Collectors.groupingBy(
-                        UserGoalData::getDate,
-                        Collectors.toList()
-                ))
-                .entrySet()
-                .stream()
-                .map(entry -> {
-                    String date = entry.getKey();
-                    List<UserGoalData> dataList = entry.getValue();
-
-                    // 날짜별 amount 합산
-                    Long totalAmount = dataList.stream()
-                            .mapToLong(UserGoalData::getAmount)
-                            .sum();
-
-                    // 날짜별 goalList 이어붙이기
-                    List<GoalListData> mergedGoalList = dataList.stream()
-                            .flatMap(data -> data.getUserGoalList().stream())
-                            .collect(Collectors.toList());
-
-                    return UserGoalData.builder()
-                            .date(date)
-                            .amount(totalAmount)
-                            .userGoalList(mergedGoalList)
-                            .build();
-                })
-                .toList();
+        List<UserTimeData> timeListResult = makeTimeData(timeList);
+        List<UserGoalData> goalListResult = makeGoalData(goalList);
 
         // 응답 객체 생성
         UserProfileResponse userProfileResponse = UserProfileResponse.builder()
@@ -239,7 +259,8 @@ public class UserService {
 
     /**
      * 로그아웃 메서드
-     * 추후 고도화 예정
+     * 현재 참가하고 있는 모든 모캠프 방에서 자동으로 나가지도록 처리한다.
+     * @return 로그아웃 완료 메시지
      */
     public ResponseEntity<CommonResponse> logout() {
         UserEntity userEntity;
@@ -255,12 +276,28 @@ public class UserService {
                     .body(new ErrorResponse(403, "에러 메시지: " + USER_NOT_FOUND_MESSAGE));
         }
 
-        return ResponseEntity.ok(new SuccessResponse(200, true));
+        try {
+            joinedRoomEntityList = joinedRoomRepository.findAllByUser(userEntity);
+            log.info("[마이홈 방 목록 조회 성공] 유저 ID: {}, 닉네임: {}", userEntity.getUserId(), joinedRoomEntityList.get(0).getUser().getUsername());
+        } catch (Exception e) {
+            log.error("[마이홈 방 목록 조회 실패] {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse(403, "에러 메시지: " + ROOM_LIST_NOT_FOUND_MESSAGE));
+        }
+
+        List<JoinedRoomEntity> updatedRoomEntityList = joinedRoomEntityList.stream()
+            .map(entity -> {
+                entity.setIsParticipating(false);
+                return entity;
+            }).toList();
+        joinedRoomRepository.saveAll(updatedRoomEntityList);
+
+        return ResponseEntity.ok(new SuccessResponse(200, "로그아웃 되었습니다."));
     }
 
     /**
      * 유저 프로필 정보 수정하는 메서드
-     * @return
+     * @return 프로필 변경 완료 메시지
      */
     @Transactional
     public ResponseEntity<CommonResponse> modifyUserProfile(String username, MultipartFile imageFile) {
