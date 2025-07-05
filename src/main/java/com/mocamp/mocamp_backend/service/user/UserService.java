@@ -80,7 +80,7 @@ public class UserService {
                     // 날짜별 goalList 이어붙이기
                     List<GoalListData> mergedGoalList = dataList.stream()
                             .flatMap(data -> data.getUserGoalList().stream())
-                            .toList();
+                            .collect(Collectors.toList());
 
                     return UserTimeData.builder()
                             .date(date)
