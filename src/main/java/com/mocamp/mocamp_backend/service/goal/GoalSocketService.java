@@ -50,8 +50,11 @@ public class GoalSocketService {
      */
     @Transactional
     public void manageGoal(GoalListRequest goalListRequest, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+//        String email = principal.getName();
+//        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -120,8 +123,12 @@ public class GoalSocketService {
      */
     @Transactional
     public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+//        String email = principal.getName();
+//        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
+
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
