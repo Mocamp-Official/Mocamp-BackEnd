@@ -198,8 +198,15 @@ public class UserService {
                     .body(new ErrorResponse(403, "에러 메시지: " + ROOM_NOT_FOUND_MESSAGE));
         }
 
-        List<UserTimeData> timeListResult = makeTimeData(timeList);
-        List<UserGoalData> goalListResult = makeGoalData(goalList);
+        List<UserRoomData> roomListResult = roomList.stream()
+                .sorted(Comparator.comparing(UserRoomData::getStartedAt).reversed())
+                .toList();
+        List<UserTimeData> timeListResult = makeTimeData(timeList).stream()
+                .sorted(Comparator.comparing(UserTimeData::getDate))
+                .toList();
+        List<UserGoalData> goalListResult = makeGoalData(goalList).stream()
+                .sorted(Comparator.comparing(UserGoalData::getDate))
+                .toList();
 
         // 응답 객체 생성
         UserProfileResponse userProfileResponse = UserProfileResponse.builder()
@@ -208,7 +215,7 @@ public class UserService {
                 .imagePath(userEntity.getImage().getPath())
                 .totalDurationMinute(totalDurationMinute)
                 .totalNumberOfGoals(totalNumberOfGoals)
-                .roomList(roomList)
+                .roomList(roomListResult)
                 .timeList(timeListResult)
                 .goalList(goalListResult)
                 .build();
