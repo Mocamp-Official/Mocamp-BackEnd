@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Builder
 @Getter
@@ -18,4 +20,7 @@ public class UserRoomData {
     private LocalDateTime startedAt;
     private LocalTime duration;
     private Boolean status;
+
+    @Builder.Default
+    private List<GoalListData> userGoalList = new ArrayList<>();
 }
