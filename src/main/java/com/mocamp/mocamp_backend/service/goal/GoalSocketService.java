@@ -50,9 +50,6 @@ public class GoalSocketService {
      */
     @Transactional
     public void manageGoal(GoalListRequest goalListRequest, Long roomId, Principal principal) {
-//        String email = principal.getName();
-//        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
-
         String userSeq = principal.getName();
         UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
@@ -110,7 +107,6 @@ public class GoalSocketService {
                 .toList();
 
 
-
         messagingTemplate.convertAndSend("/sub/data/" + roomId, new GoalListResponse(WebsocketMessageType.GOAL_LIST_UPDATED, user.getUserId(), goalResponseList, updatedJoinedRoomEntity.getIsSecret(), user.getUserId().equals(joinedRoomEntity.getUser().getUserId())));
         log.info("[목표 리스트 응답 전송 완료] userId: {}, roomId: {}, 총 목표 수: {}", user.getUserId(), roomId, goalResponseList.size());
     }
@@ -123,9 +119,6 @@ public class GoalSocketService {
      */
     @Transactional
     public void pressGoal(GoalCompleteUpdateRequest goalCompleteUpdateRequest, Long roomId, Principal principal) {
-//        String email = principal.getName();
-//        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
-
         String userSeq = principal.getName();
         UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
 
