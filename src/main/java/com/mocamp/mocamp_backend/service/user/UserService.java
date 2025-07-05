@@ -5,10 +5,7 @@ import com.mocamp.mocamp_backend.dto.commonResponse.CommonResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.ErrorResponse;
 import com.mocamp.mocamp_backend.dto.commonResponse.SuccessResponse;
 import com.mocamp.mocamp_backend.dto.user.UserProfileResponse;
-import com.mocamp.mocamp_backend.entity.ImageEntity;
-import com.mocamp.mocamp_backend.entity.JoinedRoomEntity;
-import com.mocamp.mocamp_backend.entity.RoomEntity;
-import com.mocamp.mocamp_backend.entity.UserEntity;
+import com.mocamp.mocamp_backend.entity.*;
 import com.mocamp.mocamp_backend.repository.ImageRepository;
 import com.mocamp.mocamp_backend.repository.JoinedRoomRepository;
 import com.mocamp.mocamp_backend.repository.RoomRepository;
@@ -106,15 +103,19 @@ public class UserService {
                 roomList.add(userRoomData);
 
                 UserTimeData userTimeData = UserTimeData.builder()
-                        .date(roomEntity.getEndedAt().getMonth().toString() + "." + roomEntity.getEndedAt().getDayOfMonth())
+                        .date(roomEntity.getEndedAt().getMonth().getValue() + "." + roomEntity.getEndedAt().getDayOfMonth())
                         .duration((long) (roomEntity.getDuration().getHour() * 60 + roomEntity.getDuration().getMinute()))
                         .build();
                 timeList.add(userTimeData);
                 totalDurationMinute += userTimeData.getDuration();
 
+                List<GoalListData> goalDataList = joinedRoomEntity.getGoals().stream()
+                        .map(entry -> new GoalListData(entry.getGoalId(), entry.getContent(), entry.getIsCompleted()))
+                        .toList();
                 UserGoalData userGoalData = UserGoalData.builder()
-                        .date(roomEntity.getEndedAt().getMonth().toString() + "." + roomEntity.getEndedAt().getDayOfMonth())
-                        .amount((long) joinedRoomEntity.getGoals().size())
+                        .date(roomEntity.getEndedAt().getMonth().getValue() + "." + roomEntity.getEndedAt().getDayOfMonth())
+                        .amount((long) goalDataList.size())
+                        .goalList(goalDataList)
                         .build();
                 goalList.add(userGoalData);
                 totalNumberOfGoals += userGoalData.getAmount();
@@ -137,15 +138,41 @@ public class UserService {
                 .map(entry -> new UserTimeData(entry.getKey(), entry.getValue()))
                 .toList();
 
-        // 날짜별 goal amount 합산
+        // 날짜별 goal amount 합산 및
+//        List<UserGoalData> goalListResult = goalList.stream()
+//                .collect(Collectors.groupingBy(
+//                        UserGoalData::getDate,
+//                        Collectors.summingLong(UserGoalData::getAmount),
+//                        Collectors.toList()
+//                ))
+//                .entrySet()
+//                .stream()
+//                .map(entry -> new UserGoalData(entry.getKey(), entry.getValue()))
+//                .toList();
+
         List<UserGoalData> goalListResult = goalList.stream()
                 .collect(Collectors.groupingBy(
                         UserGoalData::getDate,
-                        Collectors.summingLong(UserGoalData::getAmount)
+                        Collectors.toList()
                 ))
                 .entrySet()
                 .stream()
-                .map(entry -> new UserGoalData(entry.getKey(), entry.getValue()))
+                .map(entry -> {
+                    String date = entry.getKey();
+                    List<UserGoalData> dataList = entry.getValue();
+
+                    // 날짜별 amount 합산
+                    Long totalAmount = dataList.stream()
+                            .mapToLong(UserGoalData::getAmount)
+                            .sum();
+
+                    // 날짜별 goalList 이어붙이기
+                    List<GoalListData> mergedGoalList = dataList.stream()
+                            .flatMap(data -> data.getGoalList().stream())
+                            .collect(Collectors.toList());
+
+                    return new UserGoalData(date, totalAmount, mergedGoalList);
+                })
                 .toList();
 
         // 응답 객체 생성
