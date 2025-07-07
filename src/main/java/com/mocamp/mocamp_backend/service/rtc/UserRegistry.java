@@ -1,15 +1,17 @@
 package com.mocamp.mocamp_backend.service.rtc;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.socket.WebSocketSession;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class UserRegistry {
 
     private final ConcurrentHashMap<String, UserSession> usersByName = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, UserSession> usersBySessionId = new ConcurrentHashMap<>();
 
     public void register(UserSession user) {
-        usersByName.put(user.getSession().getId(), user);
+        usersByName.put(user.getName(), user);
         usersBySessionId.put(user.getSession().getId(), user);
     }
 
@@ -27,7 +29,9 @@ public class UserRegistry {
 
     public UserSession removeBySession(WebSocketSession session) {
         final UserSession user = getBySession(session);
+        log.info("Removing user {}", user);
         usersByName.remove(user.getName());
+        log.info("Removing session {}", session);
         usersBySessionId.remove(session.getId());
         return user;
     }
