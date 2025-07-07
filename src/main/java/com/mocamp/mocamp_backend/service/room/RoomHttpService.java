@@ -122,7 +122,7 @@ public class RoomHttpService {
                     .roomName(roomCreateRequest.getRoomName())
                     .roomSeq(createRandomRoomSeq())
                     .capacity(roomCreateRequest.getCapacity())
-                    .roomNum(1)
+                    .roomNum(0)
                     .status(true)
                     .startedAt(startedAt)
                     .endedAt(endedAt)
