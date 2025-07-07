@@ -9,7 +9,7 @@ public class UserRegistry {
     private final ConcurrentHashMap<String, UserSession> usersBySessionId = new ConcurrentHashMap<>();
 
     public void register(UserSession user) {
-        usersByName.put(user.getName(), user);
+        usersByName.put(user.getSession().getId(), user);
         usersBySessionId.put(user.getSession().getId(), user);
     }
 
