@@ -49,8 +49,8 @@ public class RoomSocketService {
      */
     @Transactional
     public void updateNotice(NoticeUpdateRequest noticeUpdateRequest, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -98,8 +98,8 @@ public class RoomSocketService {
      */
     @Transactional
     public void updateResolution(ResolutionUpdateRequest resolutionUpdateRequest, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -148,8 +148,8 @@ public class RoomSocketService {
      */
     @Transactional
     public void updateDelegation(DelegationUpdateRequest delegationUpdateRequest, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -210,8 +210,8 @@ public class RoomSocketService {
      * @param roomId 모캠프 방 ID
      */
     public void updateWorkStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -270,8 +270,8 @@ public class RoomSocketService {
      * @param roomId 모캠프 방 ID
      */
     public void updateCamStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
@@ -330,8 +330,8 @@ public class RoomSocketService {
      * @param roomId 모캠프 방 ID
      */
     public void updateMicStatus(StatusDTO statusDTO, Long roomId, Principal principal) {
-        String email = principal.getName();
-        UserEntity user = userRepository.findUserByEmail(email).orElse(null);
+        String userSeq = principal.getName();
+        UserEntity user = userRepository.findUserByUserSeq(userSeq).orElse(null);
         if (user == null) {
             log.warn("[유저 조회 실패] userId: {}", user.getUserId());
             messagingTemplate.convertAndSend("/sub/data/" + roomId, new ErrorResponse(404, new WebsocketErrorMessage(user.getUserId(), USER_NOT_FOUND_MESSAGE)));
