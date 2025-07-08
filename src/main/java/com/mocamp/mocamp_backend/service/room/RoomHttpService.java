@@ -204,17 +204,14 @@ public class RoomHttpService {
             // 재입장 처리
             log.info("[재입장 요청] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             joinedRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
-            JoinedRoomEntity newJoinedRoomEntity = JoinedRoomEntity.builder()
-                    .joinedRoomId(joinedRoomEntity.getJoinedRoomId())
-                    .user(userEntity)
-                    .room(roomEntity)
-                    .isAdmin(joinedRoomEntity.getIsAdmin())
-                    .isParticipating(true)
-                    .isDeleted(false)
-                    .micStatus(roomEnterRequest.getMicTurnedOn())
-                    .camStatus(roomEnterRequest.getCamTurnedOn())
-                    .build();
-            joinedRoomRepository.save(newJoinedRoomEntity);
+            if(joinedRoomEntity != null) {
+                joinedRoomEntity.setIsParticipating(true);
+                joinedRoomEntity.setIsDeleted(false);
+                joinedRoomEntity.setCamStatus(roomEnterRequest.getCamTurnedOn());
+                joinedRoomEntity.setMicStatus(roomEnterRequest.getMicTurnedOn());
+
+                joinedRoomRepository.save(joinedRoomEntity);
+            }
 
             // 방에 참가 인원에 +1 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
@@ -228,9 +225,12 @@ public class RoomHttpService {
 
             if (optionalJoinedRoom.isPresent()) {
                 JoinedRoomEntity joinedRoom = optionalJoinedRoom.get();
+                log.info("joinedRoom id 확인 {}",joinedRoom.getJoinedRoomId());
                 List<GoalEntity> goals = joinedRoom.getGoals();
                 if (goals != null) {
                     for (GoalEntity goal : goals) {
+                        log.info("나의 목표 갖고오기 -> {}", goal.toString());
+                        log.info("➡️ GoalEntity: id = {}, content = {}, isCompleted = {}");
                         goalResponses.add(GoalResponse.builder()
                                 .goalId(goal.getGoalId())
                                 .content(goal.getContent())
