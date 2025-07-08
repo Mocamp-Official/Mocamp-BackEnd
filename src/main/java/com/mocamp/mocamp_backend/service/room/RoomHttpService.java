@@ -228,6 +228,7 @@ public class RoomHttpService {
 
             if (optionalJoinedRoom.isPresent()) {
                 JoinedRoomEntity joinedRoom = optionalJoinedRoom.get();
+                log.info("joinedRoom id 확인 {}",joinedRoom.getJoinedRoomId());
                 List<GoalEntity> goals = joinedRoom.getGoals();
                 if (goals != null) {
                     for (GoalEntity goal : goals) {
