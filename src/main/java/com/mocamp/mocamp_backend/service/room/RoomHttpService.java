@@ -231,6 +231,8 @@ public class RoomHttpService {
                 List<GoalEntity> goals = joinedRoom.getGoals();
                 if (goals != null) {
                     for (GoalEntity goal : goals) {
+                        log.info("나의 목표 갖고오기 -> {}", goal.toString());
+                        log.info("➡️ GoalEntity: id = {}, content = {}, isCompleted = {}");
                         goalResponses.add(GoalResponse.builder()
                                 .goalId(goal.getGoalId())
                                 .content(goal.getContent())
