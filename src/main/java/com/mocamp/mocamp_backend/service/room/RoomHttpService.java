@@ -221,15 +221,22 @@ public class RoomHttpService {
             roomRepository.save(roomEntity);
 
 
-            List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+            Optional<JoinedRoomEntity> optionalJoinedRoom =
+                    joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, userEntity.getUserId());
+
             List<GoalResponse> goalResponses = new ArrayList<>();
-            for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
-                for (GoalEntity goal : joinedRoom.getGoals()) {
-                    goalResponses.add(GoalResponse.builder()
-                            .goalId(goal.getGoalId())
-                            .content(goal.getContent())
-                            .isCompleted(goal.getIsCompleted())
-                            .build());
+
+            if (optionalJoinedRoom.isPresent()) {
+                JoinedRoomEntity joinedRoom = optionalJoinedRoom.get();
+                List<GoalEntity> goals = joinedRoom.getGoals();
+                if (goals != null) {
+                    for (GoalEntity goal : goals) {
+                        goalResponses.add(GoalResponse.builder()
+                                .goalId(goal.getGoalId())
+                                .content(goal.getContent())
+                                .isCompleted(goal.getIsCompleted())
+                                .build());
+                    }
                 }
             }
 
@@ -262,15 +269,22 @@ public class RoomHttpService {
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
             roomRepository.save(roomEntity);
 
-            List<JoinedRoomEntity> joinedRoomEntityList = joinedRoomRepository.findByRoom_RoomIdAndIsParticipatingTrue(roomId);
+            Optional<JoinedRoomEntity> optionalJoinedRoom =
+                    joinedRoomRepository.findByRoom_RoomIdAndUser_UserIdAndIsParticipatingTrue(roomId, userEntity.getUserId());
+
             List<GoalResponse> goalResponses = new ArrayList<>();
-            for (JoinedRoomEntity joinedRoom : joinedRoomEntityList) {
-                for (GoalEntity goal : joinedRoom.getGoals()) {
-                    goalResponses.add(GoalResponse.builder()
-                            .goalId(goal.getGoalId())
-                            .content(goal.getContent())
-                            .isCompleted(goal.getIsCompleted())
-                            .build());
+
+            if (optionalJoinedRoom.isPresent()) {
+                JoinedRoomEntity joinedRoom = optionalJoinedRoom.get();
+                List<GoalEntity> goals = joinedRoom.getGoals();
+                if (goals != null) {
+                    for (GoalEntity goal : goals) {
+                        goalResponses.add(GoalResponse.builder()
+                                .goalId(goal.getGoalId())
+                                .content(goal.getContent())
+                                .isCompleted(goal.getIsCompleted())
+                                .build());
+                    }
                 }
             }
 
