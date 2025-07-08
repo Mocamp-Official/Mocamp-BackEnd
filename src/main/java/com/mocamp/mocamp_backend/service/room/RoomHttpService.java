@@ -204,17 +204,14 @@ public class RoomHttpService {
             // 재입장 처리
             log.info("[재입장 요청] userId: {}, roomId: {}", userEntity.getUserId(), roomId);
             joinedRoomEntity = joinedRoomRepository.findByRoomAndUser(roomEntity, userEntity).orElse(null);
-            JoinedRoomEntity newJoinedRoomEntity = JoinedRoomEntity.builder()
-                    .joinedRoomId(joinedRoomEntity.getJoinedRoomId())
-                    .user(userEntity)
-                    .room(roomEntity)
-                    .isAdmin(joinedRoomEntity.getIsAdmin())
-                    .isParticipating(true)
-                    .isDeleted(false)
-                    .micStatus(roomEnterRequest.getMicTurnedOn())
-                    .camStatus(roomEnterRequest.getCamTurnedOn())
-                    .build();
-            joinedRoomRepository.save(newJoinedRoomEntity);
+            if(joinedRoomEntity != null) {
+                joinedRoomEntity.setIsParticipating(true);
+                joinedRoomEntity.setIsDeleted(false);
+                joinedRoomEntity.setCamStatus(roomEnterRequest.getCamTurnedOn());
+                joinedRoomEntity.setMicStatus(roomEnterRequest.getMicTurnedOn());
+
+                joinedRoomRepository.save(joinedRoomEntity);
+            }
 
             // 방에 참가 인원에 +1 반영
             roomEntity.updateRoomNum(roomEntity.getRoomNum() + 1);
