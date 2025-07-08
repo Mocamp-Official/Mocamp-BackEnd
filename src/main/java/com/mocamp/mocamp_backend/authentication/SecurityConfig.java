@@ -67,7 +67,7 @@ public class SecurityConfig {
             CorsConfiguration config = new CorsConfiguration();
             config.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://mocamp-front-end.vercel.app"));
 //            config.setAllowedOriginPatterns(List.of("*"));    // 소켓 테스트용
-            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
             config.setAllowedHeaders(List.of("*"));
             config.setAllowCredentials(true);
             return config;
