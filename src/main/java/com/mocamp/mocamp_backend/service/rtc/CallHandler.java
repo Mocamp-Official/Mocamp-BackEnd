@@ -72,7 +72,17 @@ public class CallHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("❌ 연결 종료: session id = {}, status = {}", session.getId(), status);
         UserSession user = registry.removeBySession(session);
-        roomManager.getRoom(user.getRoomName()).leave(user);
+        if (user == null) {
+            log.warn("User session is null during afterConnectionClosed. sessionId={}", session.getId());
+            return;
+        }
+
+        Room room = roomManager.getRoom(user.getRoomName());
+        if (room != null) {
+            room.leave(user);
+        } else {
+            log.warn("Room {} not found while trying to leave. sessionId={}", user.getRoomName(), session.getId());
+        }
     }
 
     private void joinRoom(JsonObject params, WebSocketSession session) throws IOException {

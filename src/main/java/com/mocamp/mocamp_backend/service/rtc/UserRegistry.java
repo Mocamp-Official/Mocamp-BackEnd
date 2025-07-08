@@ -29,6 +29,13 @@ public class UserRegistry {
 
     public UserSession removeBySession(WebSocketSession session) {
         final UserSession user = getBySession(session);
+
+        if (user == null) {
+            log.warn("Trying to remove user, but no session found for id={}", session.getId());
+            usersBySessionId.remove(session.getId()); // 혹시 남아 있으면 정리
+            return null;
+        }
+
         log.info("Removing user {}", user);
         usersByName.remove(user.getName());
         log.info("Removing session {}", session);
