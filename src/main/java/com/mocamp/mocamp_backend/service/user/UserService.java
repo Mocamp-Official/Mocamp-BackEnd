@@ -93,8 +93,7 @@ public class UserService {
                             .build();
                 })
                 .sorted(Comparator.comparing(
-                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
-                        Comparator.reverseOrder()
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear())
                 )).toList();
     }
 
@@ -130,8 +129,7 @@ public class UserService {
                             .build();
                 })
                 .sorted(Comparator.comparing(
-                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
-                        Comparator.reverseOrder()
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear())
                 )).toList();
     }
 
@@ -211,14 +209,10 @@ public class UserService {
         }
 
         List<UserRoomData> roomListResult = roomList.stream()
-                .sorted(Comparator.comparing(UserRoomData::getStartedAt).reversed())
-                .toList();
-        List<UserTimeData> timeListResult = makeTimeData(timeList).stream()
-                .sorted(Comparator.comparing(UserTimeData::getDate))
-                .toList();
-        List<UserGoalData> goalListResult = makeGoalData(goalList).stream()
-                .sorted(Comparator.comparing(UserGoalData::getDate))
-                .toList();
+                .sorted(Comparator.comparing(UserRoomData::getStartedAt))
+                .toList();;
+        List<UserTimeData> timeListResult = makeTimeData(timeList);
+        List<UserGoalData> goalListResult = makeGoalData(goalList);
 
         // 응답 객체 생성
         UserProfileResponse userProfileResponse = UserProfileResponse.builder()
