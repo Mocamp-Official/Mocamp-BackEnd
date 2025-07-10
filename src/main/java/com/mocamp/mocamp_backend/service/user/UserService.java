@@ -93,8 +93,7 @@ public class UserService {
                             .build();
                 })
                 .sorted(Comparator.comparing(
-                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
-                        Comparator.reverseOrder()
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear())
                 )).toList();
     }
 
@@ -130,8 +129,7 @@ public class UserService {
                             .build();
                 })
                 .sorted(Comparator.comparing(
-                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
-                        Comparator.reverseOrder()
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear())
                 )).toList();
     }
 
@@ -211,10 +209,8 @@ public class UserService {
         }
 
         List<UserRoomData> roomListResult = roomList.stream()
-                .sorted(Comparator.comparing(
-                        UserRoomData::getStartedAt,
-                        Comparator.reverseOrder()
-                )).toList();;
+                .sorted(Comparator.comparing(UserRoomData::getStartedAt))
+                .toList();;
         List<UserTimeData> timeListResult = makeTimeData(timeList);
         List<UserGoalData> goalListResult = makeGoalData(goalList);
 
