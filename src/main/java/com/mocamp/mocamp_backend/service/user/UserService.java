@@ -211,14 +211,12 @@ public class UserService {
         }
 
         List<UserRoomData> roomListResult = roomList.stream()
-                .sorted(Comparator.comparing(UserRoomData::getStartedAt).reversed())
-                .toList();
-        List<UserTimeData> timeListResult = makeTimeData(timeList).stream()
-                .sorted(Comparator.comparing(UserTimeData::getDate))
-                .toList();
-        List<UserGoalData> goalListResult = makeGoalData(goalList).stream()
-                .sorted(Comparator.comparing(UserGoalData::getDate))
-                .toList();
+                .sorted(Comparator.comparing(
+                        UserRoomData::getStartedAt,
+                        Comparator.reverseOrder()
+                )).toList();;
+        List<UserTimeData> timeListResult = makeTimeData(timeList);
+        List<UserGoalData> goalListResult = makeGoalData(goalList);
 
         // 응답 객체 생성
         UserProfileResponse userProfileResponse = UserProfileResponse.builder()
