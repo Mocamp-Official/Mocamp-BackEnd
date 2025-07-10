@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -61,6 +63,8 @@ public class UserService {
 
     // 날짜별 모캠프 사용 시간 데이터 생성
     private List<UserTimeData> makeTimeData(final List<UserTimeData> timeList) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M.d");
+
         return timeList.stream()
                 .collect(Collectors.groupingBy(
                         UserTimeData::getDate,
@@ -88,11 +92,16 @@ public class UserService {
                             .userGoalList(mergedGoalList)
                             .build();
                 })
-                .toList();
+                .sorted(Comparator.comparing(
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
+                        Comparator.reverseOrder()
+                )).toList();
     }
 
     // 날짜별 목표 수행 데이터 생성
     private List<UserGoalData> makeGoalData(final List<UserGoalData> goalList) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M.d");
+
         return goalList.stream()
                 .collect(Collectors.groupingBy(
                         UserGoalData::getDate,
@@ -120,7 +129,10 @@ public class UserService {
                             .userGoalList(mergedGoalList)
                             .build();
                 })
-                .toList();
+                .sorted(Comparator.comparing(
+                        data -> LocalDate.parse(data.getDate(), formatter).withYear(LocalDate.now().getYear()),
+                        Comparator.reverseOrder()
+                )).toList();
     }
 
     /**
