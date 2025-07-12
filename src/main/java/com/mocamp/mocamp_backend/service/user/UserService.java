@@ -209,7 +209,7 @@ public class UserService {
         }
 
         List<UserRoomData> roomListResult = roomList.stream()
-                .sorted(Comparator.comparing(UserRoomData::getStartedAt))
+                .sorted(Comparator.comparing(UserRoomData::getStartedAt).reversed())
                 .toList();;
         List<UserTimeData> timeListResult = makeTimeData(timeList);
         List<UserGoalData> goalListResult = makeGoalData(goalList);
